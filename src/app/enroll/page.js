@@ -24,7 +24,7 @@ import TestInfoForm from "@/components/ui/forms/TestInfoForm";
 import { submitEnrollment, fetchAdmissionStatus } from "@/lib/api";
 
 const steps = [
-  { id: 1, title: "Student Info", component: StudentInfoForm },
+  { id: 1, title: "Student Info", component: TestInfoForm   },
   { id: 2, title: "Admission Info", component: AdmissionInfoForm },
   { id: 3, title: "Basic Info", component: BasicInfoForm },
   { id: 4, title: "Residence Info", component: ResidenceInfoForm },
@@ -33,7 +33,7 @@ const steps = [
   { id: 7, title: "Documents", component: DocumentInfoForm },
   { id: 8, title: "Agreement", component: AgreementForm },
   { id: 9, title: "Application Processing", component: ProcessingInfoForm },
-  { id: 10, title: "Entry Test", component: TestInfoForm },
+  { id: 10, title: "Entry Test", component: null },
 ];
 
 const ProgressSidebar = ({ currentStep, admissionCode }) => (

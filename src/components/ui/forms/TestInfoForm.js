@@ -1,7 +1,10 @@
+'use client';
 import React, { useState } from 'react';
 import { CheckCircle, AlertCircle } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
-const TestInfoForm = ({ onStartTest }) => {
+const TestInfoForm = () => {
+  const router = useRouter();
   const [isAcknowledged, setIsAcknowledged] = useState(false);
   const [showError, setShowError] = useState(false);
 
@@ -14,7 +17,7 @@ const TestInfoForm = ({ onStartTest }) => {
     if (!isAcknowledged) {
       setShowError(true);
     } else {
-      onStartTest?.();
+      router.push('/test/exam');
     }
   };
 
