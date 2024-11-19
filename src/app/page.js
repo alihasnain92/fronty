@@ -22,6 +22,7 @@ import {
   MicOff,
 } from "lucide-react";
 import Link from "next/link";
+import CreateStudent from "./SampleComponent/ComponentForIntegration";
 
 // Utility functions
 const cn = (...classes) => classes.filter(Boolean).join(" ");
@@ -302,6 +303,7 @@ export default function AssistantLanding() {
 
   // Your exact JSX render code here
   return (
+    // <CreateStudent />
     <div
       className={cn(
         "min-h-screen flex transition-colors duration-300",

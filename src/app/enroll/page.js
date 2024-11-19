@@ -24,7 +24,7 @@ import TestInfoForm from "@/components/ui/forms/TestInfoForm";
 import { submitEnrollment, fetchAdmissionStatus } from "@/lib/api";
 
 const steps = [
-  { id: 1, title: "Student Info", component: TestInfoForm   },
+  { id: 1, title: "Student Info", component: StudentInfoForm },
   { id: 2, title: "Admission Info", component: AdmissionInfoForm },
   { id: 3, title: "Basic Info", component: BasicInfoForm },
   { id: 4, title: "Residence Info", component: ResidenceInfoForm },
@@ -33,7 +33,7 @@ const steps = [
   { id: 7, title: "Documents", component: DocumentInfoForm },
   { id: 8, title: "Agreement", component: AgreementForm },
   { id: 9, title: "Application Processing", component: ProcessingInfoForm },
-  { id: 10, title: "Entry Test", component: null },
+  { id: 10, title: "Entry Test", component: TestInfoForm },
 ];
 
 const ProgressSidebar = ({ currentStep, admissionCode }) => (
@@ -301,10 +301,12 @@ export default function EnrollmentPage() {
           {/* Navigation Buttons */}
           <div className="flex justify-between">
             <button
-              onClick={() => currentStep > 1 ? setCurrentStep((prev) => prev - 1) : setShowNewApplication(true)}
-              className={`px-6 py-3 rounded-lg flex items-center gap-2 transition-all duration-300 ${
-                "bg-teal-600 hover:bg-teal-700 text-white"
-              }`}
+              onClick={() =>
+                currentStep > 1
+                  ? setCurrentStep((prev) => prev - 1)
+                  : setShowNewApplication(true)
+              }
+              className={`px-6 py-3 rounded-lg flex items-center gap-2 transition-all duration-300 ${"bg-teal-600 hover:bg-teal-700 text-white"}`}
             >
               <ArrowLeft className="w-4 h-4" />
               {currentStep > 1 ? "Previous Step" : "Back to Start"}
