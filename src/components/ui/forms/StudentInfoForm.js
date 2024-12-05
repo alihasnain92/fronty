@@ -492,7 +492,7 @@ const StudentInfoForm = ({ formData = {}, onChange, onValidation }) => {
     }
 
     try {
-      const response = await fetch("http://localhost:4000/students", {
+      const response = await fetch("http://localhost:3001/students", {
         method: "POST",
         body: form,
       });
