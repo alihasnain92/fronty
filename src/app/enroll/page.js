@@ -201,7 +201,6 @@ export default function EnrollmentPage() {
         setAdmissionCode(code);
         setShowNewApplication(false);
 
-        // Set validation for completed steps
         const validationState = {};
         for (let i = 1; i <= response.lastCompletedStep; i++) {
           validationState[i] = true;
@@ -213,9 +212,7 @@ export default function EnrollmentPage() {
         );
       }
     } catch (err) {
-      setError(
-        "Invalid admission code or no application found with this code."
-      );
+      setError("Invalid admission code or no application found with this code.");
     } finally {
       setIsSearching(false);
     }
@@ -267,10 +264,7 @@ export default function EnrollmentPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-teal-50 to-blue-50 flex">
       {/* Sidebar Progress */}
-      <ProgressSidebar
-        currentStep={currentStep}
-        admissionCode={admissionCode}
-      />
+      <ProgressSidebar currentStep={currentStep} admissionCode={admissionCode} />
 
       {/* Main Content */}
       <div className="flex-1 p-8">
@@ -306,7 +300,7 @@ export default function EnrollmentPage() {
                   ? setCurrentStep((prev) => prev - 1)
                   : setShowNewApplication(true)
               }
-              className={`px-6 py-3 rounded-lg flex items-center gap-2 transition-all duration-300 ${"bg-teal-600 hover:bg-teal-700 text-white"}`}
+              className={`px-6 py-3 rounded-lg flex items-center gap-2 transition-all duration-300 bg-teal-600 hover:bg-teal-700 text-white`}
             >
               <ArrowLeft className="w-4 h-4" />
               {currentStep > 1 ? "Previous Step" : "Back to Start"}
