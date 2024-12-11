@@ -54,6 +54,7 @@ const KARACHI_AREAS = [
 const ResidenceInfoForm = ({ formData = {}, onChange, onValidation }) => {
   const [errors, setErrors] = useState({});
   const [sameAsPresentAddress, setSameAsPresentAddress] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Styling constants
   const sectionClass = "bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300";
@@ -133,9 +134,6 @@ const ResidenceInfoForm = ({ formData = {}, onChange, onValidation }) => {
         break;
 
       case 'presentArea':
-        fieldErrors[name] = !value ? 'Area is required' : '';
-        break;
-
       case 'permanentArea':
         fieldErrors[name] = !value ? 'Area is required' : '';
         break;
@@ -186,289 +184,360 @@ const ResidenceInfoForm = ({ formData = {}, onChange, onValidation }) => {
     onValidation?.(isValid);
   }, [errors, formData, onValidation]);
 
+  const submitForm = async (e) => {
+    e.preventDefault();
+
+    const requiredFields = [
+      'presentAddress',
+      'presentCity',
+      'presentArea',
+      'presentPostalCode',
+      'permanentAddress',
+      'permanentCity',
+      'permanentArea',
+    ];
+
+    let isValid = true;
+    requiredFields.forEach((field) => {
+      isValid = validateField(field, formData[field], formData) && isValid;
+    });
+
+    if (!isValid) return;
+
+    setIsSubmitting(true);
+
+    const payload = {
+      student_id: formData.student_id,
+      present_address: formData.presentAddress,
+      present_city: formData.presentCity,
+      present_area: formData.presentArea,
+      present_postal_code: formData.presentPostalCode,
+      permanent_address: formData.permanentAddress,
+      permanent_city: formData.permanentCity,
+      permanent_area: formData.permanentArea,
+      permanent_postal_code: formData.permanentPostalCode,
+    };
+
+    try {
+      const response = await fetch("http://localhost:3001/residence-info", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorDetails = await response.json();
+        console.error("Error while submitting the form:", errorDetails);
+        throw new Error(`Failed to submit the form: ${JSON.stringify(errorDetails)}`);
+      }
+
+      console.log("Residence info saved successfully");
+      if (typeof onValidation === "function") {
+        onValidation(true);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      if (typeof onValidation === "function") {
+        onValidation(false);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <div className="space-y-8 max-w-4xl mx-auto">
-      {/* Form Guidelines */}
-      <div className="mt-8 p-4 bg-amber-50 rounded-lg border border-amber-100">
-        <h4 className="font-medium text-amber-800 mb-2 flex items-center">
-          <Info className="w-5 h-5 mr-2" />
-          Important Information
-        </h4>
-        <ul className="list-disc list-inside space-y-2 text-sm text-amber-700">
-          <li>All fields marked with <span className="text-red-500">*</span> are mandatory</li>
-          <li>For Karachi, select your area from the dropdown</li>
-          <li>For other cities, please type your area name</li>
-          <li>Postal code is required for present address</li>
-          <li>Use the checkbox to copy present address details to permanent address</li>
-          <li>Please ensure all address details are accurate and match your official documents</li>
-        </ul>
-      </div>
-
-      {/* Present Address Section */}
-      <div className={sectionClass}>
-        <div className="flex items-center mb-6">
-          <Home className="w-6 h-6 text-teal-500 mr-2" />
-          <h2 className="text-2xl font-bold text-gray-800">Present Address</h2>
+    <form onSubmit={submitForm}>
+      <div className="space-y-8 max-w-4xl mx-auto">
+        {/* Form Guidelines */}
+        <div className="mt-8 p-4 bg-amber-50 rounded-lg border border-amber-100">
+          <h4 className="font-medium text-amber-800 mb-2 flex items-center">
+            <Info className="w-5 h-5 mr-2" />
+            Important Information
+          </h4>
+          <ul className="list-disc list-inside space-y-2 text-sm text-amber-700">
+            <li>All fields marked with <span className="text-red-500">*</span> are mandatory</li>
+            <li>For Karachi, select your area from the dropdown</li>
+            <li>For other cities, please type your area name</li>
+            <li>Postal code is required for present address</li>
+            <li>Use the checkbox to copy present address details to permanent address</li>
+            <li>Please ensure all address details are accurate and match your official documents</li>
+          </ul>
         </div>
 
-        <div className="grid grid-cols-1 gap-6">
-          {/* Address */}
-          <div>
-            <label htmlFor="presentAddress" className={labelClass}>
-              Address <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              id="presentAddress"
-              name="presentAddress"
-              value={formData.presentAddress || ''}
-              onChange={handleChange}
-              className={`${inputClass(errors.presentAddress)} min-h-[80px]`}
-              placeholder="Enter your complete present address"
-              required
-            />
-            {errors.presentAddress && (
-              <div className="flex items-center mt-1 text-red-500">
-                <AlertCircle className="w-4 h-4 mr-1" />
-                <span className="text-sm">{errors.presentAddress}</span>
-              </div>
-            )}
-          </div>
-
-          {/* City, Area, Postal Code */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* City */}
-            <div>
-              <label htmlFor="presentCity" className={labelClass}>
-                City <span className="text-red-500">*</span>
-              </label>
-              <select
-                id="presentCity"
-                name="presentCity"
-                value={formData.presentCity || ''}
-                onChange={handleChange}
-                className={inputClass(errors.presentCity)}
-                required
-              >
-                <option value="">Select City</option>
-                {CITIES.map(city => (
-                  <option key={city} value={city}>{city}</option>
-                ))}
-              </select>
-              {errors.presentCity && (
-                <div className="flex items-center mt-1 text-red-500">
-                  <AlertCircle className="w-4 h-4 mr-1" />
-                  <span className="text-sm">{errors.presentCity}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Area */}
-            <div>
-              <label htmlFor="presentArea" className={labelClass}>
-                Area <span className="text-red-500">*</span>
-              </label>
-              {formData.presentCity === 'Karachi' ? (
-                <select
-                  id="presentArea"
-                  name="presentArea"
-                  value={formData.presentArea || ''}
-                  onChange={handleChange}
-                  className={inputClass(errors.presentArea)}
-                  required
-                >
-                  <option value="">Select Area</option>
-                  {KARACHI_AREAS.map(area => (
-                    <option key={area} value={area}>{area}</option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  id="presentArea"
-                  name="presentArea"
-                  value={formData.presentArea || ''}
-                  onChange={handleChange}
-                  className={inputClass(errors.presentArea)}
-                  placeholder="Enter your area"
-                  required
-                />
-              )}
-              {errors.presentArea && (
-                <div className="flex items-center mt-1 text-red-500">
-                  <AlertCircle className="w-4 h-4 mr-1" />
-                  <span className="text-sm">{errors.presentArea}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Postal Code */}
-            <div>
-              <label htmlFor="presentPostalCode" className={labelClass}>
-                Postal Code <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="presentPostalCode"
-                type="text"
-                name="presentPostalCode"
-                value={formData.presentPostalCode || ''}
-                onChange={handlePostalCodeChange}
-                className={inputClass(errors.presentPostalCode)}
-                placeholder="Enter 5-digit postal code"
-                maxLength={5}
-                required
-              />
-              {errors.presentPostalCode && (
-                <div className="flex items-center mt-1 text-red-500">
-                  <AlertCircle className="w-4 h-4 mr-1" />
-                  <span className="text-sm">{errors.presentPostalCode}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Permanent Address Section */}
-      <div className={sectionClass}>
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center">
+        {/* Present Address Section */}
+        <div className={sectionClass}>
+          <div className="flex items-center mb-6">
             <Home className="w-6 h-6 text-teal-500 mr-2" />
-            <h2 className="text-2xl font-bold text-gray-800">Permanent Address</h2>
-          </div>
-          <div className="flex items-center">
-            <input
-              id="sameAsPresentAddress"
-              type="checkbox"
-              name="sameAsPresentAddress"
-              checked={sameAsPresentAddress}
-              onChange={handleChange}
-              className="w-4 h-4 text-teal-600 rounded border-gray-300 focus:ring-teal-500"
-            />
-            <label htmlFor="sameAsPresentAddress" className="ml-2 text-sm text-gray-600">
-              Same as Present Address
-            </label>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-6">
-          {/* Address */}
-          <div>
-            <label htmlFor="permanentAddress" className={labelClass}>
-              Address <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              id="permanentAddress"
-              name="permanentAddress"
-              value={formData.permanentAddress || ''}
-              onChange={handleChange}
-              className={`${inputClass(errors.permanentAddress)} min-h-[80px]`}
-              placeholder="Enter your complete permanent address"
-              disabled={sameAsPresentAddress}
-              required
-            />
-            {errors.permanentAddress && (
-              <div className="flex items-center mt-1 text-red-500">
-                <AlertCircle className="w-4 h-4 mr-1" />
-                <span className="text-sm">{errors.permanentAddress}</span>
-              </div>
-            )}
+            <h2 className="text-2xl font-bold text-gray-800">Present Address</h2>
           </div>
 
-          {/* City, Area, Postal Code */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* City */}
+          <div className="grid grid-cols-1 gap-6">
+            {/* Address */}
             <div>
-              <label htmlFor="permanentCity" className={labelClass}>
-                City <span className="text-red-500">*</span>
+              <label htmlFor="presentAddress" className={labelClass}>
+                Address <span className="text-red-500">*</span>
               </label>
-              <select
-                id="permanentCity"
-                name="permanentCity"
-                value={formData.permanentCity || ''}
+              <textarea
+                id="presentAddress"
+                name="presentAddress"
+                value={formData.presentAddress || ''}
                 onChange={handleChange}
-                className={inputClass(errors.permanentCity)}
-                disabled={sameAsPresentAddress}
+                className={`${inputClass(errors.presentAddress)} min-h-[80px]`}
+                placeholder="Enter your complete present address"
                 required
-              >
-                <option value="">Select City</option>
-                {CITIES.map(city => (
-                  <option key={city} value={city}>{city}</option>
-                ))}
-              </select>
-              {errors.permanentCity && (
+              />
+              {errors.presentAddress && (
                 <div className="flex items-center mt-1 text-red-500">
                   <AlertCircle className="w-4 h-4 mr-1" />
-                  <span className="text-sm">{errors.permanentCity}</span>
+                  <span className="text-sm">{errors.presentAddress}</span>
                 </div>
               )}
             </div>
 
-            {/* Area */}
-            <div>
-              <label htmlFor="permanentArea" className={labelClass}>
-                Area <span className="text-red-500">*</span>
-              </label>
-              {formData.permanentCity === 'Karachi' ? (
+            {/* City, Area, Postal Code */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* City */}
+              <div>
+                <label htmlFor="presentCity" className={labelClass}>
+                  City <span className="text-red-500">*</span>
+                </label>
                 <select
-                  id="permanentArea"
-                  name="permanentArea"
-                  value={formData.permanentArea || ''}
+                  id="presentCity"
+                  name="presentCity"
+                  value={formData.presentCity || ''}
                   onChange={handleChange}
-                  className={inputClass(errors.permanentArea)}
+                  className={inputClass(errors.presentCity)}
+                  required
+                >
+                  <option value="">Select City</option>
+                  {CITIES.map(city => (
+                    <option key={city} value={city}>{city}</option>
+                  ))}
+                </select>
+                {errors.presentCity && (
+                  <div className="flex items-center mt-1 text-red-500">
+                    <AlertCircle className="w-4 h-4 mr-1" />
+                    <span className="text-sm">{errors.presentCity}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Area */}
+              <div>
+                <label htmlFor="presentArea" className={labelClass}>
+                  Area <span className="text-red-500">*</span>
+                </label>
+                {formData.presentCity === 'Karachi' ? (
+                  <select
+                    id="presentArea"
+                    name="presentArea"
+                    value={formData.presentArea || ''}
+                    onChange={handleChange}
+                    className={inputClass(errors.presentArea)}
+                    required
+                  >
+                    <option value="">Select Area</option>
+                    {KARACHI_AREAS.map(area => (
+                      <option key={area} value={area}>{area}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    id="presentArea"
+                    name="presentArea"
+                    value={formData.presentArea || ''}
+                    onChange={handleChange}
+                    className={inputClass(errors.presentArea)}
+                    placeholder="Enter your area"
+                    required
+                  />
+                )}
+                {errors.presentArea && (
+                  <div className="flex items-center mt-1 text-red-500">
+                    <AlertCircle className="w-4 h-4 mr-1" />
+                    <span className="text-sm">{errors.presentArea}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Postal Code */}
+              <div>
+                <label htmlFor="presentPostalCode" className={labelClass}>
+                  Postal Code <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="presentPostalCode"
+                  type="text"
+                  name="presentPostalCode"
+                  value={formData.presentPostalCode || ''}
+                  onChange={handlePostalCodeChange}
+                  className={inputClass(errors.presentPostalCode)}
+                  placeholder="Enter 5-digit postal code"
+                  maxLength={5}
+                  required
+                />
+                {errors.presentPostalCode && (
+                  <div className="flex items-center mt-1 text-red-500">
+                    <AlertCircle className="w-4 h-4 mr-1" />
+                    <span className="text-sm">{errors.presentPostalCode}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Permanent Address Section */}
+        <div className={sectionClass}>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center">
+              <Home className="w-6 h-6 text-teal-500 mr-2" />
+              <h2 className="text-2xl font-bold text-gray-800">Permanent Address</h2>
+            </div>
+            <div className="flex items-center">
+              <input
+                id="sameAsPresentAddress"
+                type="checkbox"
+                name="sameAsPresentAddress"
+                checked={sameAsPresentAddress}
+                onChange={handleChange}
+                className="w-4 h-4 text-teal-600 rounded border-gray-300 focus:ring-teal-500"
+              />
+              <label htmlFor="sameAsPresentAddress" className="ml-2 text-sm text-gray-600">
+                Same as Present Address
+              </label>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6">
+            {/* Address */}
+            <div>
+              <label htmlFor="permanentAddress" className={labelClass}>
+                Address <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                id="permanentAddress"
+                name="permanentAddress"
+                value={formData.permanentAddress || ''}
+                onChange={handleChange}
+                className={`${inputClass(errors.permanentAddress)} min-h-[80px]`}
+                placeholder="Enter your complete permanent address"
+                disabled={sameAsPresentAddress}
+                required
+              />
+              {errors.permanentAddress && (
+                <div className="flex items-center mt-1 text-red-500">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  <span className="text-sm">{errors.permanentAddress}</span>
+                </div>
+              )}
+            </div>
+
+            {/* City, Area, Postal Code */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* City */}
+              <div>
+                <label htmlFor="permanentCity" className={labelClass}>
+                  City <span className="text-red-500">*</span>
+                </label>
+                <select
+                  id="permanentCity"
+                  name="permanentCity"
+                  value={formData.permanentCity || ''}
+                  onChange={handleChange}
+                  className={inputClass(errors.permanentCity)}
                   disabled={sameAsPresentAddress}
                   required
                 >
-                  <option value="">Select Area</option>
-                  {KARACHI_AREAS.map(area => (
-                    <option key={area} value={area}>{area}</option>
+                  <option value="">Select City</option>
+                  {CITIES.map(city => (
+                    <option key={city} value={city}>{city}</option>
                   ))}
                 </select>
-              ) : (
-                <input
-                  id="permanentArea"
-                  name="permanentArea"
-                  value={formData.permanentArea || ''}
-                  onChange={handleChange}
-                  className={inputClass(errors.permanentArea)}
-                  placeholder="Enter your area"
-                  disabled={sameAsPresentAddress}
-                  required
-                />
-              )}
-              {errors.permanentArea && (
-                <div className="flex items-center mt-1 text-red-500">
-                  <AlertCircle className="w-4 h-4 mr-1" />
-                  <span className="text-sm">{errors.permanentArea}</span>
-                </div>
-              )}
-            </div>
+                {errors.permanentCity && (
+                  <div className="flex items-center mt-1 text-red-500">
+                    <AlertCircle className="w-4 h-4 mr-1" />
+                    <span className="text-sm">{errors.permanentCity}</span>
+                  </div>
+                )}
+              </div>
 
-            {/* Postal Code */}
-            <div>
-              <label htmlFor="permanentPostalCode" className={labelClass}>
-                Postal Code
-              </label>
-              <input
-                id="permanentPostalCode"
-                type="text"
-                name="permanentPostalCode"
-                value={formData.permanentPostalCode || ''}
-                onChange={handlePostalCodeChange}
-                className={inputClass(errors.permanentPostalCode)}
-                placeholder="Enter 5-digit postal code (optional)"
-                maxLength={5}
-                disabled={sameAsPresentAddress}
-              />
-              {errors.permanentPostalCode && (
-                <div className="flex items-center mt-1 text-red-500">
-                  <AlertCircle className="w-4 h-4 mr-1" />
-                  <span className="text-sm">{errors.permanentPostalCode}</span>
-                </div>
-              )}
+              {/* Area */}
+              <div>
+                <label htmlFor="permanentArea" className={labelClass}>
+                  Area <span className="text-red-500">*</span>
+                </label>
+                {formData.permanentCity === 'Karachi' ? (
+                  <select
+                    id="permanentArea"
+                    name="permanentArea"
+                    value={formData.permanentArea || ''}
+                    onChange={handleChange}
+                    className={inputClass(errors.permanentArea)}
+                    disabled={sameAsPresentAddress}
+                    required
+                  >
+                    <option value="">Select Area</option>
+                    {KARACHI_AREAS.map(area => (
+                      <option key={area} value={area}>{area}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    id="permanentArea"
+                    name="permanentArea"
+                    value={formData.permanentArea || ''}
+                    onChange={handleChange}
+                    className={inputClass(errors.permanentArea)}
+                    placeholder="Enter your area"
+                    disabled={sameAsPresentAddress}
+                    required
+                  />
+                )}
+                {errors.permanentArea && (
+                  <div className="flex items-center mt-1 text-red-500">
+                    <AlertCircle className="w-4 h-4 mr-1" />
+                    <span className="text-sm">{errors.permanentArea}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Postal Code */}
+              <div>
+                <label htmlFor="permanentPostalCode" className={labelClass}>
+                  Postal Code
+                </label>
+                <input
+                  id="permanentPostalCode"
+                  type="text"
+                  name="permanentPostalCode"
+                  value={formData.permanentPostalCode || ''}
+                  onChange={handlePostalCodeChange}
+                  className={inputClass(errors.permanentPostalCode)}
+                  placeholder="Enter 5-digit postal code (optional)"
+                  maxLength={5}
+                  disabled={sameAsPresentAddress}
+                />
+                {errors.permanentPostalCode && (
+                  <div className="flex items-center mt-1 text-red-500">
+                    <AlertCircle className="w-4 h-4 mr-1" />
+                    <span className="text-sm">{errors.permanentPostalCode}</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
+
+        <button
+          type="submit"
+          className="w-full mt-6 p-3 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-all duration-300"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "Submitting..." : "Save Information"}
+        </button>
       </div>
-    </div>
+    </form>
   );
 };
 

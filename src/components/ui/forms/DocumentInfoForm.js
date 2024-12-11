@@ -4,7 +4,6 @@ import {
   X,
   FileText,
   AlertCircle,
-  CheckCircle2,
   Eye,
 } from 'lucide-react';
 
@@ -12,6 +11,7 @@ const DocumentInfoForm = ({ formData = {}, onChange, onValidation }) => {
   const [errors, setErrors] = useState({});
   const [dragOverId, setDragOverId] = useState(null);
   const [viewingImage, setViewingImage] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Document lists
   const requiredDocuments = [
@@ -27,6 +27,17 @@ const DocumentInfoForm = ({ formData = {}, onChange, onValidation }) => {
     'Intermediate Part 1 Marksheet',
   ];
 
+  // Map display names to backend field names
+  const fieldNameMap = {
+    'NIC Front': 'nic_front',
+    'NIC Back': 'nic_back',
+    'Matric Marksheet': 'matric_marksheet',
+    'Intermediate Marksheet Part 2': 'intermediate_part2_marksheet',
+    "Guardian's CNIC": 'guardian_cnic',
+    'Matric Certificate': 'matric_certificate',
+    'Intermediate Part 1 Marksheet': 'intermediate_part1_marksheet',
+  };
+
   // Initialize formData for documents if not present
   useEffect(() => {
     const initFormData = { ...formData };
@@ -36,6 +47,7 @@ const DocumentInfoForm = ({ formData = {}, onChange, onValidation }) => {
       }
     });
     onChange(initFormData);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Document Upload Handlers
@@ -103,14 +115,6 @@ const DocumentInfoForm = ({ formData = {}, onChange, onValidation }) => {
     setViewingImage(null);
   };
 
-  // Validation Effect
-  useEffect(() => {
-    if (onValidation) {
-      const isValid = validateForm();
-      onValidation(isValid);
-    }
-  }, [formData]);
-
   // Validate all required documents are uploaded
   const validateForm = () => {
     let formErrors = {};
@@ -125,6 +129,83 @@ const DocumentInfoForm = ({ formData = {}, onChange, onValidation }) => {
 
     setErrors(formErrors);
     return isValid;
+  };
+
+  // Validation Effect
+  useEffect(() => {
+    if (onValidation) {
+      const isValid = validateForm();
+      onValidation(isValid);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData]);
+
+  const submitForm = async (e) => {
+    e.preventDefault();
+
+    // Validate before submission
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    // Prepare form data for submission
+    const formDataToSend = new FormData();
+
+    // Append required documents
+    for (const doc of requiredDocuments) {
+      const fieldName = fieldNameMap[doc];
+      const docData = formData[doc];
+      if (docData && docData.file) {
+        formDataToSend.append(fieldName, docData.file);
+      } else {
+        // Document is required but not provided
+        setErrors((prev) => ({ ...prev, [doc]: 'This document is required' }));
+        setIsSubmitting(false);
+        return;
+      }
+    }
+
+    // Append optional documents if provided
+    for (const doc of optionalDocuments) {
+      const fieldName = fieldNameMap[doc];
+      const docData = formData[doc];
+      if (docData && docData.file) {
+        formDataToSend.append(fieldName, docData.file);
+      }
+    }
+
+    // Append student_id if available
+    if (formData.student_id) {
+      formDataToSend.append('student_id', formData.student_id);
+    }
+
+    try {
+      const response = await fetch('http://localhost:3001/required-documents', {
+        method: 'POST',
+        body: formDataToSend,
+      });
+
+      if (!response.ok) {
+        const errorDetails = await response.json();
+        console.error("Error while submitting the documents:", errorDetails);
+        throw new Error(`Failed to submit the documents: ${JSON.stringify(errorDetails)}`);
+      }
+
+      console.log("Documents info saved successfully");
+      if (typeof onValidation === "function") {
+        // Indicate successful submission, so applicant can move to next step
+        onValidation(true);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      if (typeof onValidation === "function") {
+        onValidation(false);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Reusable Component for Document Upload
@@ -218,7 +299,7 @@ const DocumentInfoForm = ({ formData = {}, onChange, onValidation }) => {
   );
 
   return (
-    <div className="space-y-8 max-w-4xl mx-auto">
+    <form onSubmit={submitForm} className="space-y-8 max-w-4xl mx-auto">
       {/* Required Documents Section */}
       <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300">
         <div className="flex items-center mb-6">
@@ -264,6 +345,7 @@ const DocumentInfoForm = ({ formData = {}, onChange, onValidation }) => {
             <button
               className="absolute top-2 right-2 text-gray-600 hover:text-gray-800"
               onClick={closeModal}
+              type="button"
             >
               <X className="w-6 h-6" />
             </button>
@@ -275,7 +357,15 @@ const DocumentInfoForm = ({ formData = {}, onChange, onValidation }) => {
           </div>
         </div>
       )}
-    </div>
+
+      <button
+        type="submit"
+        className="w-full mt-6 p-3 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-all duration-300"
+        disabled={isSubmitting}
+      >
+        {isSubmitting ? "Submitting..." : "Save Information"}
+      </button>
+    </form>
   );
 };
 

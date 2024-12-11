@@ -25,6 +25,7 @@ const EDUCATION_LEVELS = [
 
 const GuardianInfoForm = ({ formData = {}, onChange, onValidation }) => {
   const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Styling constants
   const sectionClass =
@@ -142,229 +143,292 @@ const GuardianInfoForm = ({ formData = {}, onChange, onValidation }) => {
     onValidation?.(isValid);
   }, [errors, formData, onValidation]);
 
+  const submitForm = async (e) => {
+    e.preventDefault();
+
+    const requiredFields = ["name", "relationship", "contactNo", "cnic"];
+    let isValid = true;
+    requiredFields.forEach((field) => {
+      isValid = validateField(field, formData[field], formData) && isValid;
+    });
+
+    if (!isValid) return;
+
+    setIsSubmitting(true);
+
+    const payload = {
+      student_id: formData.student_id,
+      guardian_name: formData.name,
+      relationship: formData.relationship,
+      contact_number: formData.contactNo,
+      cnic_number: formData.cnic,
+      education: formData.education || "",
+      occupation: formData.occupation || "",
+      organization: formData.organization || "",
+      designation: formData.designation || "",
+      email_address: formData.email || ""
+    };
+
+    try {
+      const response = await fetch("http://localhost:3001/guardians", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorDetails = await response.json();
+        console.error("Error while submitting the form:", errorDetails);
+        throw new Error(`Failed to submit the form: ${JSON.stringify(errorDetails)}`);
+      }
+
+      console.log("Guardian info saved successfully");
+      if (typeof onValidation === "function") {
+        onValidation(true);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      if (typeof onValidation === "function") {
+        onValidation(false);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <div className="space-y-8 max-w-4xl mx-auto">
-      {/* Form Guidelines */}
-      <div className="mt-8 p-4 bg-amber-50 rounded-lg border border-amber-100">
-        <h4 className="font-medium text-amber-800 mb-2 flex items-center">
-          <Info className="w-5 h-5 mr-2" />
-          Important Information
-        </h4>
-        <ul className="list-disc list-inside space-y-2 text-sm text-amber-700">
-          <li>
-            All fields marked with <span className="text-red-500">*</span> are
-            mandatory
-          </li>
-          <li>
-            Contact number must be a valid Pakistani mobile number (03XXXXXXXXX)
-          </li>
-          <li>CNIC must follow the format: XXXXX-XXXXXXX-X</li>
-          <li>Optional fields can be left blank if not applicable</li>
-          <li>
-            Email address will be used for important communications if provided
-          </li>
-          <li>
-            Please ensure all provided information is accurate and up-to-date
-          </li>
-        </ul>
+    <form onSubmit={submitForm}>
+      <div className="space-y-8 max-w-4xl mx-auto">
+        {/* Form Guidelines */}
+        <div className="mt-8 p-4 bg-amber-50 rounded-lg border border-amber-100">
+          <h4 className="font-medium text-amber-800 mb-2 flex items-center">
+            <Info className="w-5 h-5 mr-2" />
+            Important Information
+          </h4>
+          <ul className="list-disc list-inside space-y-2 text-sm text-amber-700">
+            <li>
+              All fields marked with <span className="text-red-500">*</span> are
+              mandatory
+            </li>
+            <li>
+              Contact number must be a valid Pakistani mobile number (03XXXXXXXXX)
+            </li>
+            <li>CNIC must follow the format: XXXXX-XXXXXXX-X</li>
+            <li>Optional fields can be left blank if not applicable</li>
+            <li>
+              Email address will be used for important communications if provided
+            </li>
+            <li>
+              Please ensure all provided information is accurate and up-to-date
+            </li>
+          </ul>
+        </div>
+
+        <div className={sectionClass}>
+          <div className="flex items-center mb-6">
+            <User2 className="w-6 h-6 text-teal-500 mr-2" />
+            <h2 className="text-2xl font-bold text-gray-800">
+              Guardian Information
+            </h2>
+          </div>
+
+          {/* Required Fields */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label htmlFor="name" className={labelClass}>
+                Guardian Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="name"
+                type="text"
+                name="name"
+                value={formData.name || ""}
+                onChange={handleChange}
+                className={inputClass(errors.name)}
+                placeholder="Enter guardian's full name"
+                required
+              />
+              {errors.name && (
+                <div className="flex items-center mt-1 text-red-500">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  <span className="text-sm">{errors.name}</span>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label htmlFor="relationship" className={labelClass}>
+                Relationship <span className="text-red-500">*</span>
+              </label>
+              <select
+                id="relationship"
+                name="relationship"
+                value={formData.relationship || ""}
+                onChange={handleChange}
+                className={inputClass(errors.relationship)}
+                required
+              >
+                <option value="">Select Relationship</option>
+                {RELATIONSHIPS.map((relation) => (
+                  <option key={relation} value={relation}>
+                    {relation}
+                  </option>
+                ))}
+              </select>
+              {errors.relationship && (
+                <div className="flex items-center mt-1 text-red-500">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  <span className="text-sm">{errors.relationship}</span>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label htmlFor="contactNo" className={labelClass}>
+                Contact Number <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="contactNo"
+                type="text"
+                name="contactNo"
+                value={formData.contactNo || ""}
+                onChange={handleContactChange}
+                className={inputClass(errors.contactNo)}
+                placeholder="03XXXXXXXXX"
+                maxLength={11}
+                required
+              />
+              {errors.contactNo && (
+                <div className="flex items-center mt-1 text-red-500">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  <span className="text-sm">{errors.contactNo}</span>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label htmlFor="cnic" className={labelClass}>
+                CNIC Number <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="cnic"
+                type="text"
+                name="cnic"
+                value={formData.cnic || ""}
+                onChange={handleCNICChange}
+                className={inputClass(errors.cnic)}
+                placeholder="XXXXX-XXXXXXX-X"
+                maxLength={15}
+                required
+              />
+              {errors.cnic && (
+                <div className="flex items-center mt-1 text-red-500">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  <span className="text-sm">{errors.cnic}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Optional Fields */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+            <div>
+              <label htmlFor="education" className={labelClass}>
+                Education
+              </label>
+              <select
+                id="education"
+                name="education"
+                value={formData.education || ""}
+                onChange={handleChange}
+                className={inputClass(errors.education)}
+              >
+                <option value="">Select Education Level</option>
+                {EDUCATION_LEVELS.map((level) => (
+                  <option key={level} value={level}>
+                    {level}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="occupation" className={labelClass}>
+                Occupation
+              </label>
+              <input
+                id="occupation"
+                type="text"
+                name="occupation"
+                value={formData.occupation || ""}
+                onChange={handleChange}
+                className={inputClass(errors.occupation)}
+                placeholder="Enter occupation"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="organization" className={labelClass}>
+                Organization
+              </label>
+              <input
+                id="organization"
+                type="text"
+                name="organization"
+                value={formData.organization || ""}
+                onChange={handleChange}
+                className={inputClass(errors.organization)}
+                placeholder="Enter organization name"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="designation" className={labelClass}>
+                Designation
+              </label>
+              <input
+                id="designation"
+                type="text"
+                name="designation"
+                value={formData.designation || ""}
+                onChange={handleChange}
+                className={inputClass(errors.designation)}
+                placeholder="Enter designation"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label htmlFor="email" className={labelClass}>
+                Email Address
+              </label>
+              <input
+                id="email"
+                type="email"
+                name="email"
+                value={formData.email || ""}
+                onChange={handleChange}
+                className={inputClass(errors.email)}
+                placeholder="Enter email address"
+              />
+              {errors.email && (
+                <div className="flex items-center mt-1 text-red-500">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  <span className="text-sm">{errors.email}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          className="w-full mt-6 p-3 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-all duration-300"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "Submitting..." : "Save Information"}
+        </button>
       </div>
-
-      <div className={sectionClass}>
-        <div className="flex items-center mb-6">
-          <User2 className="w-6 h-6 text-teal-500 mr-2" />
-          <h2 className="text-2xl font-bold text-gray-800">
-            Guardian Information
-          </h2>
-        </div>
-
-        {/* Required Fields */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label htmlFor="name" className={labelClass}>
-              Guardian Name <span className="text-red-500">*</span>
-            </label>
-            <input
-              id="name"
-              type="text"
-              name="name"
-              value={formData.name || ""}
-              onChange={handleChange}
-              className={inputClass(errors.name)}
-              placeholder="Enter guardian's full name"
-              required
-            />
-            {errors.name && (
-              <div className="flex items-center mt-1 text-red-500">
-                <AlertCircle className="w-4 h-4 mr-1" />
-                <span className="text-sm">{errors.name}</span>
-              </div>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor="relationship" className={labelClass}>
-              Relationship <span className="text-red-500">*</span>
-            </label>
-            <select
-              id="relationship"
-              name="relationship"
-              value={formData.relationship || ""}
-              onChange={handleChange}
-              className={inputClass(errors.relationship)}
-              required
-            >
-              <option value="">Select Relationship</option>
-              {RELATIONSHIPS.map((relation) => (
-                <option key={relation} value={relation}>
-                  {relation}
-                </option>
-              ))}
-            </select>
-            {errors.relationship && (
-              <div className="flex items-center mt-1 text-red-500">
-                <AlertCircle className="w-4 h-4 mr-1" />
-                <span className="text-sm">{errors.relationship}</span>
-              </div>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor="contactNo" className={labelClass}>
-              Contact Number <span className="text-red-500">*</span>
-            </label>
-            <input
-              id="contactNo"
-              type="text"
-              name="contactNo"
-              value={formData.contactNo || ""}
-              onChange={handleContactChange}
-              className={inputClass(errors.contactNo)}
-              placeholder="03XXXXXXXXX"
-              maxLength={11}
-              required
-            />
-            {errors.contactNo && (
-              <div className="flex items-center mt-1 text-red-500">
-                <AlertCircle className="w-4 h-4 mr-1" />
-                <span className="text-sm">{errors.contactNo}</span>
-              </div>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor="cnic" className={labelClass}>
-              CNIC Number <span className="text-red-500">*</span>
-            </label>
-            <input
-              id="cnic"
-              type="text"
-              name="cnic"
-              value={formData.cnic || ""}
-              onChange={handleCNICChange}
-              className={inputClass(errors.cnic)}
-              placeholder="XXXXX-XXXXXXX-X"
-              maxLength={15}
-              required
-            />
-            {errors.cnic && (
-              <div className="flex items-center mt-1 text-red-500">
-                <AlertCircle className="w-4 h-4 mr-1" />
-                <span className="text-sm">{errors.cnic}</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Optional Fields */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-          <div>
-            <label htmlFor="education" className={labelClass}>
-              Education
-            </label>
-            <select
-              id="education"
-              name="education"
-              value={formData.education || ""}
-              onChange={handleChange}
-              className={inputClass(errors.education)}
-            >
-              <option value="">Select Education Level</option>
-              {EDUCATION_LEVELS.map((level) => (
-                <option key={level} value={level}>
-                  {level}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="occupation" className={labelClass}>
-              Occupation
-            </label>
-            <input
-              id="occupation"
-              type="text"
-              name="occupation"
-              value={formData.occupation || ""}
-              onChange={handleChange}
-              className={inputClass(errors.occupation)}
-              placeholder="Enter occupation"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="organization" className={labelClass}>
-              Organization
-            </label>
-            <input
-              id="organization"
-              type="text"
-              name="organization"
-              value={formData.organization || ""}
-              onChange={handleChange}
-              className={inputClass(errors.organization)}
-              placeholder="Enter organization name"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="designation" className={labelClass}>
-              Designation
-            </label>
-            <input
-              id="designation"
-              type="text"
-              name="designation"
-              value={formData.designation || ""}
-              onChange={handleChange}
-              className={inputClass(errors.designation)}
-              placeholder="Enter designation"
-            />
-          </div>
-
-          <div className="md:col-span-2">
-            <label htmlFor="email" className={labelClass}>
-              Email Address
-            </label>
-            <input
-              id="email"
-              type="email"
-              name="email"
-              value={formData.email || ""}
-              onChange={handleChange}
-              className={inputClass(errors.email)}
-              placeholder="Enter email address"
-            />
-            {errors.email && (
-              <div className="flex items-center mt-1 text-red-500">
-                <AlertCircle className="w-4 h-4 mr-1" />
-                <span className="text-sm">{errors.email}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
+    </form>
   );
 };
 
