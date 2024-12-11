@@ -182,7 +182,7 @@ const DocumentInfoForm = ({ formData = {}, onChange, onValidation }) => {
     }
 
     try {
-      const response = await fetch('http://localhost:3001/required-documents', {
+      const response = await fetch('http://localhost:3001/required-documents/upload', {
         method: 'POST',
         body: formDataToSend,
       });
