@@ -18,10 +18,10 @@ import ResidenceInfoForm from "@/components/ui/forms/ResidenceInfoForm";
 import GuardianInfoForm from "@/components/ui/forms/GuardianInfoForm";
 import AcademicInfoForm from "@/components/ui/forms/AcademicInfoForm";
 import DocumentInfoForm from "@/components/ui/forms/DocumentInfoForm";
-import AgreementForm from "@/components/ui/forms/AgreementInfoForm";
+import AgreementInfoForm from "@/components/ui/forms/AgreementInfoForm";
 import ProcessingInfoForm from "@/components/ui/forms/ProcessingInfoForm";
 import TestInfoForm from "@/components/ui/forms/TestInfoForm";
-import { submitEnrollment, fetchAdmissionStatus } from "@/lib/api";
+import { fetchAdmissionStatus } from "@/lib/api";
 
 const steps = [
   { id: 1, title: "Student Info", component: StudentInfoForm },
@@ -31,7 +31,7 @@ const steps = [
   { id: 5, title: "Guardian's Info", component: GuardianInfoForm },
   { id: 6, title: "Academic's Info", component: AcademicInfoForm },
   { id: 7, title: "Documents", component: DocumentInfoForm },
-  { id: 8, title: "Agreement", component: AgreementForm },
+  { id: 8, title: "Agreement", component: AgreementInfoForm },
   { id: 9, title: "Application Processing", component: ProcessingInfoForm },
   { id: 10, title: "Entry Test", component: TestInfoForm },
 ];
@@ -167,7 +167,6 @@ export default function EnrollmentPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({});
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [stepValidation, setStepValidation] = useState({});
   const [admissionCode, setAdmissionCode] = useState(null);
@@ -203,7 +202,7 @@ export default function EnrollmentPage() {
 
         const validationState = {};
         for (let i = 1; i <= response.lastCompletedStep; i++) {
-          validationState[i] = true;
+          validationState[i] = true; // previously completed steps are valid
         }
         setStepValidation(validationState);
       } else if (response.status === "complete") {
@@ -218,28 +217,13 @@ export default function EnrollmentPage() {
     }
   };
 
-  const goToNextStep = useCallback(async () => {
+  const goToNextStep = useCallback(() => {
+    // Only allow going to next step if stepValidation[currentStep] is true
     if (currentStep < steps.length && stepValidation[currentStep]) {
-      setIsLoading(true);
-      try {
-        // Save progress
-        if (admissionCode) {
-          await submitEnrollment({
-            admissionCode,
-            formData,
-            currentStep,
-            status: currentStep === steps.length ? "complete" : "incomplete",
-          });
-        }
-        setCurrentStep((prev) => prev + 1);
-        window.scrollTo(0, 0);
-      } catch (err) {
-        setError("Failed to save progress. Please try again.");
-      } finally {
-        setIsLoading(false);
-      }
+      setCurrentStep((prev) => prev + 1);
+      window.scrollTo(0, 0);
     }
-  }, [currentStep, stepValidation, formData, admissionCode]);
+  }, [currentStep, stepValidation]);
 
   const startNewApplication = () => {
     setFormData({});
@@ -247,9 +231,8 @@ export default function EnrollmentPage() {
     setStepValidation({});
     setAdmissionCode(null);
     setShowNewApplication(false);
+    setError(null);
   };
-
-  const CurrentStepComponent = steps[currentStep - 1].component;
 
   if (showNewApplication) {
     return (
@@ -260,6 +243,8 @@ export default function EnrollmentPage() {
       />
     );
   }
+
+  const CurrentStepComponent = steps[currentStep - 1].component;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-teal-50 to-blue-50 flex">
@@ -274,16 +259,12 @@ export default function EnrollmentPage() {
             <h1 className="text-2xl font-bold text-gray-800 mb-6">
               {steps[currentStep - 1].title}
             </h1>
-            {isLoading ? (
-              <LoadingSpinner />
-            ) : (
-              CurrentStepComponent && (
-                <CurrentStepComponent
-                  formData={formData}
-                  onChange={handleFormChange}
-                  onValidation={handleStepValidation}
-                />
-              )
+            {CurrentStepComponent && (
+              <CurrentStepComponent
+                formData={formData}
+                onChange={handleFormChange}
+                onValidation={handleStepValidation}
+              />
             )}
             {error && (
               <div className="text-red-500 mt-4 p-4 bg-red-50 rounded-lg border border-red-100">
@@ -300,14 +281,14 @@ export default function EnrollmentPage() {
                   ? setCurrentStep((prev) => prev - 1)
                   : setShowNewApplication(true)
               }
-              className={`px-6 py-3 rounded-lg flex items-center gap-2 transition-all duration-300 bg-teal-600 hover:bg-teal-700 text-white`}
+              className="px-6 py-3 rounded-lg flex items-center gap-2 transition-all duration-300 bg-teal-600 hover:bg-teal-700 text-white"
             >
               <ArrowLeft className="w-4 h-4" />
               {currentStep > 1 ? "Previous Step" : "Back to Start"}
             </button>
             <button
               onClick={goToNextStep}
-              disabled={isLoading || !stepValidation[currentStep]}
+              disabled={!stepValidation[currentStep]}
               className={`px-6 py-3 rounded-lg flex items-center gap-2 transition-all duration-300 ${
                 stepValidation[currentStep]
                   ? "bg-teal-600 hover:bg-teal-700 text-white"

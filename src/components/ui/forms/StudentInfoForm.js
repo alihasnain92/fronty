@@ -26,17 +26,15 @@ const StudentInfoForm = ({ formData = {}, onChange, onValidation }) => {
         fieldErrors.first_name = !value?.trim() ? "First name is required" : "";
         break;
       case "last_name":
-      case "lastName":
-        fieldErrors.lastName = !value?.trim() ? "Last name is required" : "";
+        fieldErrors.last_name = !value?.trim() ? "Last name is required" : "";
         break;
       case "email":
         fieldErrors.email = !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
           ? "Please enter a valid email address"
           : "";
         break;
-      case "phone":
       case "phone_number":
-        fieldErrors.phone = !/^[\d\s-+()]{10,}$/.test(value)
+        fieldErrors.phone_number = !/^[\d\s-+()]{10,}$/.test(value)
           ? "Please enter a valid phone number"
           : "";
         break;
@@ -48,18 +46,21 @@ const StudentInfoForm = ({ formData = {}, onChange, onValidation }) => {
   };
 
   const validateForm = () => {
-    const requiredFields = ["first_name", "lastName", "email", "phone"];
+    const requiredFields = ["first_name", "last_name", "email", "phone_number"];
     let formErrors = {};
     let isValid = true;
 
     requiredFields.forEach((field) => {
       if (!formData[field]?.trim()) {
         formErrors[field] = `${
-          field.charAt(0).toUpperCase() + field.slice(1)
+          field.charAt(0).toUpperCase() + field.slice(1).replace("_", " ")
         } is required`;
         isValid = false;
       } else {
-        validateField(field, formData[field]);
+        // Validate individual fields again
+        if (!validateField(field, formData[field])) {
+          isValid = false;
+        }
       }
     });
 
@@ -70,11 +71,14 @@ const StudentInfoForm = ({ formData = {}, onChange, onValidation }) => {
 
     setErrors(formErrors);
 
-    if (typeof onValidation === "function") {
-      onValidation(isValid);
-    }
-
     return isValid;
+  };
+
+  const markUnsavedChanges = () => {
+    // The step is not saved after changes
+    if (typeof onValidation === "function") {
+      onValidation(false);
+    }
   };
 
   const handleChange = (e) => {
@@ -82,9 +86,11 @@ const StudentInfoForm = ({ formData = {}, onChange, onValidation }) => {
     const newData = { ...formData, [name]: value };
     onChange(newData);
     validateField(name, value);
+    markUnsavedChanges();
   };
 
   const handlePhotoFile = (file) => {
+    markUnsavedChanges();
     if (file.size > 5 * 1024 * 1024) {
       setErrors((prev) => ({
         ...prev,
@@ -121,6 +127,7 @@ const StudentInfoForm = ({ formData = {}, onChange, onValidation }) => {
   };
 
   const removePhoto = () => {
+    markUnsavedChanges();
     setPreviewUrl("");
     onChange({ ...formData, profileImage: null, profileImagePreview: null });
     setErrors((prev) => ({
@@ -132,45 +139,69 @@ const StudentInfoForm = ({ formData = {}, onChange, onValidation }) => {
   const submitForm = async (e) => {
     e.preventDefault();
 
-    if (!validateForm()) return;
+    // Validate form before submission
+    if (!validateForm()) {
+      if (typeof onValidation === "function") {
+        onValidation(false);
+      }
+      return;
+    }
 
     setIsSubmitting(true);
 
+    const method = formData.student_id ? "PATCH" : "POST";
+    const url = formData.student_id
+      ? `http://localhost:3001/students/${formData.student_id}`
+      : "http://localhost:3001/students";
+
     const form = new FormData();
     form.append("first_name", formData.first_name);
-    form.append("last_name", formData.last_name || formData.lastName);
+    form.append("last_name", formData.last_name);
     form.append("email", formData.email);
-    form.append("phone_number", formData.phone_number || formData.phone);
+    form.append("phone_number", formData.phone_number);
     if (formData.profileImage instanceof File) {
       form.append("profileImage", formData.profileImage);
     }
 
     try {
-      const response = await fetch("http://localhost:3001/students", {
-        method: "POST",
+      const response = await fetch(url, {
+        method: method,
         body: form,
       });
 
       if (!response.ok) {
-        const errorDetails = { status: response.status, statusText: response.statusText, url: response.url };
+        const errorDetails = {
+          status: response.status,
+          statusText: response.statusText,
+          url: response.url,
+        };
         let responseBody;
-        try { responseBody = await response.json(); } catch {
-          try { responseBody = await response.text(); } catch { responseBody = "Unable to parse response body."; }
+        try {
+          responseBody = await response.json();
+        } catch {
+          try {
+            responseBody = await response.text();
+          } catch {
+            responseBody = "Unable to parse response body.";
+          }
         }
         errorDetails.body = responseBody;
 
         console.error("Error while submitting the form:", errorDetails);
-        throw new Error(`Failed to submit the form: ${JSON.stringify(errorDetails)}`);
+        throw new Error(
+          `Failed to submit the form: ${JSON.stringify(errorDetails)}`
+        );
       }
 
       const result = await response.json();
       console.log("Form submitted successfully", result);
 
-      // Store student_id in formData
-      if (result.student_id) {
+      // If POST was used and we got a student_id in response, store it for future PATCH requests
+      if (!formData.student_id && result.student_id) {
         onChange({ ...formData, student_id: result.student_id });
       }
 
+      // After successful submission, mark the step as saved
       if (typeof onValidation === "function") {
         onValidation(true);
       }
@@ -222,8 +253,14 @@ const StudentInfoForm = ({ formData = {}, onChange, onValidation }) => {
             ) : (
               <div
                 className="relative"
-                onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
-                onDragLeave={(e) => { e.preventDefault(); setIsDragOver(false); }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDragOver(true);
+                }}
+                onDragLeave={(e) => {
+                  e.preventDefault();
+                  setIsDragOver(false);
+                }}
                 onDrop={handleDrop}
               >
                 <input
@@ -233,7 +270,6 @@ const StudentInfoForm = ({ formData = {}, onChange, onValidation }) => {
                   accept="image/jpeg,image/png"
                   onChange={handlePhotoChange}
                   className="hidden"
-                  required
                 />
                 <label
                   htmlFor="photo"
@@ -318,7 +354,6 @@ const StudentInfoForm = ({ formData = {}, onChange, onValidation }) => {
               onChange={handleChange}
               className={inputClass(errors.first_name)}
               placeholder="Enter your first name"
-              required
             />
             {errors.first_name && (
               <div className="flex items-center mt-1 text-red-500">
@@ -334,17 +369,16 @@ const StudentInfoForm = ({ formData = {}, onChange, onValidation }) => {
             </label>
             <input
               type="text"
-              name="lastName"
-              value={formData.lastName || ""}
+              name="last_name"
+              value={formData.last_name || ""}
               onChange={handleChange}
-              className={inputClass(errors.lastName)}
+              className={inputClass(errors.last_name)}
               placeholder="Enter your last name"
-              required
             />
-            {errors.lastName && (
+            {errors.last_name && (
               <div className="flex items-center mt-1 text-red-500">
                 <AlertCircle className="w-4 h-4 mr-1" />
-                <span className="text-sm">{errors.lastName}</span>
+                <span className="text-sm">{errors.last_name}</span>
               </div>
             )}
           </div>
@@ -363,7 +397,6 @@ const StudentInfoForm = ({ formData = {}, onChange, onValidation }) => {
               onChange={handleChange}
               className={inputClass(errors.email)}
               placeholder="your.email@example.com"
-              required
             />
             {errors.email && (
               <div className="flex items-center mt-1 text-red-500">
@@ -379,23 +412,23 @@ const StudentInfoForm = ({ formData = {}, onChange, onValidation }) => {
             </label>
             <input
               type="tel"
-              name="phone"
-              value={formData.phone || ""}
+              name="phone_number"
+              value={formData.phone_number || ""}
               onChange={handleChange}
-              className={inputClass(errors.phone)}
+              className={inputClass(errors.phone_number)}
               placeholder="+92-XXX-XXXXXXX"
-              required
             />
-            {errors.phone && (
+            {errors.phone_number && (
               <div className="flex items-center mt-1 text-red-500">
                 <AlertCircle className="w-4 h-4 mr-1" />
-                <span className="text-sm">{errors.phone}</span>
+                <span className="text-sm">{errors.phone_number}</span>
               </div>
             )}
           </div>
         </div>
       </div>
 
+      {/* Save Information Button */}
       <button
         onClick={submitForm}
         type="submit"
