@@ -744,7 +744,7 @@ const StudentInfoForm = ({ formData = {}, onChange, onValidation }) => {
         className="w-full mt-6 p-3 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-all duration-300"
         disabled={isSubmitting}
       >
-        {isSubmitting ? "Submitting..." : "Submit"}
+        {isSubmitting ? "Saving..." : "Save"}
       </button>
     </div>
   );
