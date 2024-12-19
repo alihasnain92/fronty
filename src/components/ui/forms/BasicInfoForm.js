@@ -35,8 +35,9 @@ const BasicInfoForm = ({ formData = {}, onChange, onValidation }) => {
   const [showDisabilityDetails, setShowDisabilityDetails] = useState(
     formData.disability && formData.disability !== "None"
   );
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Styling constants
+  
   const sectionClass =
     "bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300";
   const labelClass = "block text-sm font-medium text-gray-700 mb-1";
@@ -50,7 +51,7 @@ const BasicInfoForm = ({ formData = {}, onChange, onValidation }) => {
     hover:border-teal-300
   `;
 
-  // Form Field Handlers
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     let updatedData = { ...formData, [name]: value };
@@ -71,12 +72,7 @@ const BasicInfoForm = ({ formData = {}, onChange, onValidation }) => {
       if (!shouldShowDetails) {
         delete updatedData.disabilityDetails;
       }
-      // Validate disabilityDetails when disability changes
-      validateField(
-        "disabilityDetails",
-        updatedData.disabilityDetails,
-        updatedData
-      );
+      validateField("disabilityDetails", updatedData.disabilityDetails, updatedData);
     }
 
     onChange(updatedData);
@@ -148,8 +144,7 @@ const BasicInfoForm = ({ formData = {}, onChange, onValidation }) => {
         if (!value) {
           fieldErrors.cnic = "CNIC is required";
         } else if (!/^\d{5}-\d{7}-\d{1}$/.test(value)) {
-          fieldErrors.cnic =
-            "Please enter a valid CNIC number (format: XXXXX-XXXXXXX-X)";
+          fieldErrors.cnic = "Please enter a valid CNIC number (format: XXXXX-XXXXXXX-X)";
         } else {
           delete fieldErrors.cnic;
         }
@@ -166,8 +161,7 @@ const BasicInfoForm = ({ formData = {}, onChange, onValidation }) => {
       case "secondNationality":
         if (showDualNationalityFields) {
           if (!value?.trim()) {
-            fieldErrors.secondNationality =
-              "Second nationality is required for dual nationals";
+            fieldErrors.secondNationality = "Second nationality is required for dual nationals";
           } else if (!/^[a-zA-Z\s]+$/.test(value.trim())) {
             fieldErrors.secondNationality = "Please enter a valid nationality";
           } else {
@@ -181,11 +175,9 @@ const BasicInfoForm = ({ formData = {}, onChange, onValidation }) => {
       case "passportNumber":
         if (showDualNationalityFields) {
           if (!value) {
-            fieldErrors.passportNumber =
-              "Passport number is required for dual nationals";
+            fieldErrors.passportNumber = "Passport number is required for dual nationals";
           } else if (value.length < 6) {
-            fieldErrors.passportNumber =
-              "Passport number should be at least 6 characters";
+            fieldErrors.passportNumber = "Passport number should be at least 6 characters";
           } else {
             delete fieldErrors.passportNumber;
           }
@@ -240,7 +232,7 @@ const BasicInfoForm = ({ formData = {}, onChange, onValidation }) => {
     handleChange({ target: { name: "cnic", value: formatted } });
   };
 
-  // Validation Effect
+
   useEffect(() => {
     const requiredFields = [
       "fatherName",
@@ -256,19 +248,13 @@ const BasicInfoForm = ({ formData = {}, onChange, onValidation }) => {
       requiredFields.push("secondNationality", "passportNumber");
     }
 
-    // Check if all required fields are filled
-    const requiredFieldsFilled = requiredFields.every(
-      (field) => formData[field]
-    );
-
-    // Check for errors
+    const requiredFieldsFilled = requiredFields.every((field) => formData[field]);
     const hasNoErrors = Object.values(errors).every((error) => !error);
 
-    // Special handling for disability
     const isDisabilityValid =
-      !formData.disability || // If no disability selected yet
-      formData.disability === "None" || // If None selected
-      (formData.disability !== "None" && formData.disabilityDetails); // If disability selected and details provided
+      !formData.disability ||
+      formData.disability === "None" ||
+      (formData.disability !== "None" && formData.disabilityDetails);
 
     const isValid = requiredFieldsFilled && hasNoErrors && isDisabilityValid;
     onValidation?.(isValid);
@@ -280,6 +266,79 @@ const BasicInfoForm = ({ formData = {}, onChange, onValidation }) => {
     onValidation,
   ]);
 
+  const submitForm = async (e) => {
+    e.preventDefault();
+  
+    const requiredFields = [
+      "fatherName",
+      "gender",
+      "dateOfBirth",
+      "nationality",
+      "religion",
+      "cnic",
+      "province",
+    ];
+  
+    if (showDualNationalityFields) {
+      requiredFields.push("secondNationality", "passportNumber");
+    }
+  
+    let isValid = true;
+    requiredFields.forEach((field) => {
+      isValid = validateField(field, formData[field], formData) && isValid;
+    });
+  
+    if (!isValid) return;
+  
+    setIsSubmitting(true);
+  
+    // Ensure the date of birth is in the desired format
+    const dob = new Date(formData.dateOfBirth);
+    dob.setUTCHours(0, 0, 0, 0);
+    const formattedDOB = dob.toISOString(); // Format as "2002-09-10T00:00:00.000Z"
+  
+    const payload = {
+      student_id: formData.student_id,
+      father_name: formData.fatherName,
+      gender: formData.gender,
+      date_of_birth: formattedDOB,
+      nationality: formData.nationality,
+      religion: formData.religion,
+      cnic_number: formData.cnic,
+      province: formData.province,
+      // Set disability as boolean: true if any disability, false if 'None'
+      disability: formData.disability !== "None"
+    };
+  
+    try {
+      const response = await fetch("http://localhost:3001/basic-info", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+  
+      if (!response.ok) {
+        const errorDetails = await response.json();
+        console.error("Error while submitting the form:", errorDetails);
+        throw new Error(`Failed to submit the form: ${JSON.stringify(errorDetails)}`);
+      }
+  
+      console.log("Basic info saved successfully");
+      if (typeof onValidation === "function") {
+        onValidation(true);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      if (typeof onValidation === "function") {
+        onValidation(false);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  
+
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
       {/* Form Guidelines */}
@@ -290,346 +349,340 @@ const BasicInfoForm = ({ formData = {}, onChange, onValidation }) => {
         </h4>
         <ul className="list-disc list-inside space-y-2 text-sm text-amber-700">
           <li>
-            All fields marked with <span className="text-red-500">*</span> are
-            mandatory
+            All fields marked with <span className="text-red-500">*</span> are mandatory
           </li>
           <li>Ensure your CNIC number follows the format: XXXXX-XXXXXXX-X</li>
           <li>Date of birth should show that you are at least 15 years old</li>
           <li>Province should match your domicile certificate and CNIC</li>
           <li>
-            If you have a disability, providing accurate details will help us
-            accommodate your needs
+            If you have a disability, providing accurate details will help us accommodate your needs
           </li>
         </ul>
       </div>
 
-      <div className={sectionClass}>
-        <div className="flex items-center mb-6">
-          <User className="w-6 h-6 text-teal-500 mr-2" />
-          <h2 className="text-2xl font-bold text-gray-800">
-            Basic Information
-          </h2>
-        </div>
-
-        {/* Personal Information */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label htmlFor="fatherName" className={labelClass}>
-              Father's Name <span className="text-red-500">*</span>
-            </label>
-            <input
-              id="fatherName"
-              type="text"
-              name="fatherName"
-              value={formData.fatherName || ""}
-              onChange={handleChange}
-              className={inputClass(errors.fatherName)}
-              placeholder="Enter your father's name"
-              required
-            />
-            {errors.fatherName && (
-              <div className="flex items-center mt-1 text-red-500">
-                <AlertCircle className="w-4 h-4 mr-1" />
-                <span className="text-sm">{errors.fatherName}</span>
-              </div>
-            )}
+      <form onSubmit={submitForm}>
+        <div className={sectionClass}>
+          <div className="flex items-center mb-6">
+            <User className="w-6 h-6 text-teal-500 mr-2" />
+            <h2 className="text-2xl font-bold text-gray-800">
+              Basic Information
+            </h2>
           </div>
 
-          <div>
-            <label htmlFor="gender" className={labelClass}>
-              Gender <span className="text-red-500">*</span>
-            </label>
-            <select
-              id="gender"
-              name="gender"
-              value={formData.gender || ""}
-              onChange={handleChange}
-              className={inputClass(errors.gender)}
-              required
-            >
-              <option value="">Select Gender</option>
-              {GENDER_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-            {errors.gender && (
-              <div className="flex items-center mt-1 text-red-500">
-                <AlertCircle className="w-4 h-4 mr-1" />
-                <span className="text-sm">{errors.gender}</span>
-              </div>
-            )}
-          </div>
-        </div>
+          {/* Personal Information */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label htmlFor="fatherName" className={labelClass}>
+                Father's Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="fatherName"
+                type="text"
+                name="fatherName"
+                value={formData.fatherName || ""}
+                onChange={handleChange}
+                className={inputClass(errors.fatherName)}
+                placeholder="Enter your father's name"
+                required
+              />
+              {errors.fatherName && (
+                <div className="flex items-center mt-1 text-red-500">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  <span className="text-sm">{errors.fatherName}</span>
+                </div>
+              )}
+            </div>
 
-        {/* Date of Birth and Nationality */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-          <div>
-            <label htmlFor="dateOfBirth" className={labelClass}>
-              Date of Birth <span className="text-red-500">*</span>
-            </label>
-            <input
-              id="dateOfBirth"
-              type="date"
-              name="dateOfBirth"
-              value={formData.dateOfBirth || ""}
-              onChange={handleChange}
-              max={new Date().toISOString().split("T")[0]}
-              className={inputClass(errors.dateOfBirth)}
-              required
-            />
-            {errors.dateOfBirth && (
-              <div className="flex items-center mt-1 text-red-500">
-                <AlertCircle className="w-4 h-4 mr-1" />
-                <span className="text-sm">{errors.dateOfBirth}</span>
-              </div>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor="nationality" className={labelClass}>
-              Nationality <span className="text-red-500">*</span>
-            </label>
-            <select
-              id="nationality"
-              name="nationality"
-              value={formData.nationality || ""}
-              onChange={handleChange}
-              className={inputClass(errors.nationality)}
-              required
-            >
-              <option value="">Select Nationality</option>
-              {NATIONALITY_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-            {errors.nationality && (
-              <div className="flex items-center mt-1 text-red-500">
-                <AlertCircle className="w-4 h-4 mr-1" />
-                <span className="text-sm">{errors.nationality}</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Religion and CNIC */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-          <div>
-            <label htmlFor="religion" className={labelClass}>
-              Religion <span className="text-red-500">*</span>
-            </label>
-            <select
-              id="religion"
-              name="religion"
-              value={formData.religion || ""}
-              onChange={handleChange}
-              className={inputClass(errors.religion)}
-              required
-            >
-              <option value="">Select Religion</option>
-              {RELIGION_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-            {errors.religion && (
-              <div className="flex items-center mt-1 text-red-500">
-                <AlertCircle className="w-4 h-4 mr-1" />
-                <span className="text-sm">{errors.religion}</span>
-              </div>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor="cnic" className={labelClass}>
-              CNIC Number <span className="text-red-500">*</span>
-            </label>
-            <input
-              id="cnic"
-              type="text"
-              name="cnic"
-              value={formData.cnic || ""}
-              onChange={handleCNICChange}
-              maxLength={15}
-              className={inputClass(errors.cnic)}
-              placeholder="XXXXX-XXXXXXX-X"
-              required
-            />
-            {errors.cnic && (
-              <div className="flex items-center mt-1 text-red-500">
-                <AlertCircle className="w-4 h-4 mr-1" />
-                <span className="text-sm">{errors.cnic}</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Province and Disability */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-          <div>
-            <label htmlFor="province" className={labelClass}>
-              Province <span className="text-red-500">*</span>
-            </label>
-            <select
-              id="province"
-              name="province"
-              value={formData.province || ""}
-              onChange={handleChange}
-              className={inputClass(errors.province)}
-              required
-            >
-              <option value="">Select Province</option>
-              {PROVINCE_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-            {errors.province && (
-              <div className="flex items-center mt-1 text-red-500">
-                <AlertCircle className="w-4 h-4 mr-1" />
-                <span className="text-sm">{errors.province}</span>
-              </div>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor="disability" className={labelClass}>
-              Disability
-            </label>
-            <select
-              id="disability"
-              name="disability"
-              value={formData.disability || "None"}
-              onChange={handleChange}
-              className={inputClass(errors.disability)}
-            >
-              {DISABILITY_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Disability Details */}
-        {showDisabilityDetails && formData.disability !== "None" && (
-          <div className="mt-6">
-            <label htmlFor="disabilityDetails" className={labelClass}>
-              Disability Details <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              id="disabilityDetails"
-              name="disabilityDetails"
-              value={formData.disabilityDetails || ""}
-              onChange={handleChange}
-              className={`${inputClass(
-                errors.disabilityDetails
-              )} min-h-[120px]`}
-              placeholder="Please provide details about your disability to help us better accommodate your needs"
-              required={showDisabilityDetails}
-            />
-            {errors.disabilityDetails && (
-              <div className="flex items-center mt-1 text-red-500">
-                <AlertCircle className="w-4 h-4 mr-1" />
-                <span className="text-sm">{errors.disabilityDetails}</span>
-              </div>
-            )}
-            <div className="mt-2 text-sm text-gray-500 flex items-center">
-              <Info className="w-4 h-4 mr-1" />
-              <span>
-                This information will be used to provide appropriate
-                accommodations
-              </span>
+            <div>
+              <label htmlFor="gender" className={labelClass}>
+                Gender <span className="text-red-500">*</span>
+              </label>
+              <select
+                id="gender"
+                name="gender"
+                value={formData.gender || ""}
+                onChange={handleChange}
+                className={inputClass(errors.gender)}
+                required
+              >
+                <option value="">Select Gender</option>
+                {GENDER_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+              {errors.gender && (
+                <div className="flex items-center mt-1 text-red-500">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  <span className="text-sm">{errors.gender}</span>
+                </div>
+              )}
             </div>
           </div>
-        )}
 
-        {/* Dual Nationality Fields */}
-        {showDualNationalityFields && (
-          <div className="mt-6 p-6 bg-gray-50 rounded-lg border border-gray-200">
-            <h3 className="font-medium text-gray-800 mb-4">
-              Dual Nationality Information
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label htmlFor="secondNationality" className={labelClass}>
-                  Second Nationality <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="secondNationality"
-                  type="text"
-                  name="secondNationality"
-                  value={formData.secondNationality || ""}
-                  onChange={handleChange}
-                  className={inputClass(errors.secondNationality)}
-                  placeholder="Enter your second nationality"
-                  required={showDualNationalityFields}
-                />
-                {errors.secondNationality && (
-                  <div className="flex items-center mt-1 text-red-500">
-                    <AlertCircle className="w-4 h-4 mr-1" />
-                    <span className="text-sm">{errors.secondNationality}</span>
-                  </div>
-                )}
+          {/* Date of Birth and Nationality */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            <div>
+              <label htmlFor="dateOfBirth" className={labelClass}>
+                Date of Birth <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="dateOfBirth"
+                type="date"
+                name="dateOfBirth"
+                value={formData.dateOfBirth || ""}
+                onChange={handleChange}
+                max={new Date().toISOString().split("T")[0]}
+                className={inputClass(errors.dateOfBirth)}
+                required
+              />
+              {errors.dateOfBirth && (
+                <div className="flex items-center mt-1 text-red-500">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  <span className="text-sm">{errors.dateOfBirth}</span>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label htmlFor="nationality" className={labelClass}>
+                Nationality <span className="text-red-500">*</span>
+              </label>
+              <select
+                id="nationality"
+                name="nationality"
+                value={formData.nationality || ""}
+                onChange={handleChange}
+                className={inputClass(errors.nationality)}
+                required
+              >
+                <option value="">Select Nationality</option>
+                {NATIONALITY_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+              {errors.nationality && (
+                <div className="flex items-center mt-1 text-red-500">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  <span className="text-sm">{errors.nationality}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Religion and CNIC */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            <div>
+              <label htmlFor="religion" className={labelClass}>
+                Religion <span className="text-red-500">*</span>
+              </label>
+              <select
+                id="religion"
+                name="religion"
+                value={formData.religion || ""}
+                onChange={handleChange}
+                className={inputClass(errors.religion)}
+                required
+              >
+                <option value="">Select Religion</option>
+                {RELIGION_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+              {errors.religion && (
+                <div className="flex items-center mt-1 text-red-500">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  <span className="text-sm">{errors.religion}</span>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label htmlFor="cnic" className={labelClass}>
+                CNIC Number <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="cnic"
+                type="text"
+                name="cnic"
+                value={formData.cnic || ""}
+                onChange={handleCNICChange}
+                maxLength={15}
+                className={inputClass(errors.cnic)}
+                placeholder="XXXXX-XXXXXXX-X"
+                required
+              />
+              {errors.cnic && (
+                <div className="flex items-center mt-1 text-red-500">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  <span className="text-sm">{errors.cnic}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Province and Disability */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            <div>
+              <label htmlFor="province" className={labelClass}>
+                Province <span className="text-red-500">*</span>
+              </label>
+              <select
+                id="province"
+                name="province"
+                value={formData.province || ""}
+                onChange={handleChange}
+                className={inputClass(errors.province)}
+                required
+              >
+                <option value="">Select Province</option>
+                {PROVINCE_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+              {errors.province && (
+                <div className="flex items-center mt-1 text-red-500">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  <span className="text-sm">{errors.province}</span>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label htmlFor="disability" className={labelClass}>
+                Disability
+              </label>
+              <select
+                id="disability"
+                name="disability"
+                value={formData.disability || "None"}
+                onChange={handleChange}
+                className={inputClass(errors.disability)}
+              >
+                {DISABILITY_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Disability Details */}
+          {showDisabilityDetails && formData.disability !== "None" && (
+            <div className="mt-6">
+              <label htmlFor="disabilityDetails" className={labelClass}>
+                Disability Details <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                id="disabilityDetails"
+                name="disabilityDetails"
+                value={formData.disabilityDetails || ""}
+                onChange={handleChange}
+                className={`${inputClass(errors.disabilityDetails)} min-h-[120px]`}
+                placeholder="Please provide details about your disability to help us better accommodate your needs"
+                required={showDisabilityDetails}
+              />
+              {errors.disabilityDetails && (
+                <div className="flex items-center mt-1 text-red-500">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  <span className="text-sm">{errors.disabilityDetails}</span>
+                </div>
+              )}
+              <div className="mt-2 text-sm text-gray-500 flex items-center">
+                <Info className="w-4 h-4 mr-1" />
+                <span>
+                  This information will be used to provide appropriate accommodations
+                </span>
               </div>
+            </div>
+          )}
 
-              <div>
-                <label htmlFor="passportNumber" className={labelClass}>
-                  Passport Number <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="passportNumber"
-                  type="text"
-                  name="passportNumber"
-                  value={formData.passportNumber || ""}
-                  onChange={handleChange}
-                  className={inputClass(errors.passportNumber)}
-                  placeholder="Enter your passport number"
-                  required={showDualNationalityFields}
-                />
-                {errors.passportNumber && (
-                  <div className="flex items-center mt-1 text-red-500">
-                    <AlertCircle className="w-4 h-4 mr-1" />
-                    <span className="text-sm">{errors.passportNumber}</span>
+          {/* Dual Nationality Fields */}
+          {showDualNationalityFields && (
+            <div className="mt-6 p-6 bg-gray-50 rounded-lg border border-gray-200">
+              <h3 className="font-medium text-gray-800 mb-4">
+                Dual Nationality Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label htmlFor="secondNationality" className={labelClass}>
+                    Second Nationality <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="secondNationality"
+                    type="text"
+                    name="secondNationality"
+                    value={formData.secondNationality || ""}
+                    onChange={handleChange}
+                    className={inputClass(errors.secondNationality)}
+                    placeholder="Enter your second nationality"
+                    required={showDualNationalityFields}
+                  />
+                  {errors.secondNationality && (
+                    <div className="flex items-center mt-1 text-red-500">
+                      <AlertCircle className="w-4 h-4 mr-1" />
+                      <span className="text-sm">{errors.secondNationality}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label htmlFor="passportNumber" className={labelClass}>
+                    Passport Number <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="passportNumber"
+                    type="text"
+                    name="passportNumber"
+                    value={formData.passportNumber || ""}
+                    onChange={handleChange}
+                    className={inputClass(errors.passportNumber)}
+                    placeholder="Enter your passport number"
+                    required={showDualNationalityFields}
+                  />
+                  {errors.passportNumber && (
+                    <div className="flex items-center mt-1 text-red-500">
+                      <AlertCircle className="w-4 h-4 mr-1" />
+                      <span className="text-sm">{errors.passportNumber}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="md:col-span-2">
+                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
+                    <h4 className="font-medium text-blue-800 mb-2 flex items-center">
+                      <Info className="w-5 h-5 mr-2" />
+                      Important Notice for Dual Nationals
+                    </h4>
+                    <ul className="list-disc list-inside space-y-2 text-sm text-blue-700">
+                      <li>Please ensure your passport is valid for at least 6 months</li>
+                      <li>Original passport must be presented during document verification</li>
+                      <li>Provide a copy of your foreign national ID card (if applicable)</li>
+                      <li>Additional documentation may be required during the admission process</li>
+                    </ul>
                   </div>
-                )}
-              </div>
-
-              <div className="md:col-span-2">
-                <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
-                  <h4 className="font-medium text-blue-800 mb-2 flex items-center">
-                    <Info className="w-5 h-5 mr-2" />
-                    Important Notice for Dual Nationals
-                  </h4>
-                  <ul className="list-disc list-inside space-y-2 text-sm text-blue-700">
-                    <li>
-                      Please ensure your passport is valid for at least 6 months
-                    </li>
-                    <li>
-                      Original passport must be presented during document
-                      verification
-                    </li>
-                    <li>
-                      Provide a copy of your foreign national ID card (if
-                      applicable)
-                    </li>
-                    <li>
-                      Additional documentation may be required during admission
-                      process
-                    </li>
-                  </ul>
                 </div>
               </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+
+        <button
+          type="submit"
+          className="w-full mt-6 p-3 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-all duration-300"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "Submitting..." : "Save Information"}
+        </button>
+      </form>
     </div>
   );
 };

@@ -1,16 +1,15 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { 
-  AlertCircle, 
-  Info, 
-  HelpCircle, 
-  Building, 
+import {
+  AlertCircle,
+  HelpCircle,
+  Building,
   Globe,
   GraduationCap,
   MapPin,
   BookOpen,
-  CheckCircle
+  CheckCircle,
 } from "lucide-react";
 
 const InfoTooltip = ({ content }) => (
@@ -19,6 +18,7 @@ const InfoTooltip = ({ content }) => (
   </span>
 );
 
+// Qualification options
 const QUALIFICATION_OPTIONS = [
   { value: "intermediate", label: "Intermediate" },
   { value: "alevels", label: "A-Levels" },
@@ -27,6 +27,7 @@ const QUALIFICATION_OPTIONS = [
   { value: "masters", label: "Master's" },
 ];
 
+// Admission types
 const ADMISSION_TYPES = [
   { value: "regular", label: "Regular Admission" },
   { value: "transfer", label: "Transfer from other University" },
@@ -34,6 +35,7 @@ const ADMISSION_TYPES = [
   { value: "international", label: "International Student" },
 ];
 
+// Campuses
 const CAMPUSES = [
   {
     value: "north",
@@ -61,12 +63,15 @@ const CAMPUSES = [
   },
 ];
 
+// Shifts
 const SHIFTS = [
   { value: "morning", label: "Morning (8:30 AM - 2:30 PM)" },
   { value: "evening", label: "Evening (3:00 PM - 9:00 PM)" },
   { value: "weekend", label: "Weekend (Saturday-Sunday)" },
 ];
 
+// Program options
+// For brevity, we define a few examples. Add full details as needed.
 const PROGRAM_OPTIONS = {
   intermediate: [
     {
@@ -78,9 +83,6 @@ const PROGRAM_OPTIONS = {
         { value: "cs", label: "Computer Science", seats: 100 },
         { value: "se", label: "Software Engineering", seats: 80 },
         { value: "ds", label: "Data Science", seats: 60 },
-        { value: "ai", label: "Artificial Intelligence", seats: 60 },
-        { value: "cyber", label: "Cyber Security", seats: 40 },
-        { value: "robotics", label: "Robotics & AI", seats: 40 },
       ],
     },
     {
@@ -91,39 +93,10 @@ const PROGRAM_OPTIONS = {
       majors: [
         { value: "marketing", label: "Marketing", seats: 100 },
         { value: "finance", label: "Finance", seats: 100 },
-        { value: "hrm", label: "Human Resource Management", seats: 80 },
-        { value: "scm", label: "Supply Chain Management", seats: 60 },
-        { value: "entrepreneurship", label: "Entrepreneurship", seats: 40 },
-        { value: "digital", label: "Digital Business", seats: 40 },
-      ],
-    },
-    {
-      value: "bsaf",
-      label: "BS Accounting & Finance",
-      duration: "4 Years",
-      creditHours: 144,
-      majors: [
-        { value: "accounting", label: "Accounting", seats: 100 },
-        { value: "finance", label: "Finance", seats: 100 },
-        { value: "taxation", label: "Taxation", seats: 60 },
-        { value: "banking", label: "Banking & Finance", seats: 60 },
-      ],
-    },
-    {
-      value: "media",
-      label: "BS Media Sciences",
-      duration: "4 Years",
-      creditHours: 136,
-      majors: [
-        { value: "journalism", label: "Journalism", seats: 60 },
-        { value: "advertising", label: "Advertising", seats: 60 },
-        { value: "production", label: "Media Production", seats: 40 },
-        { value: "digital", label: "Digital Media", seats: 40 },
       ],
     },
   ],
   alevels: [
-    // Copy of intermediate programs
     {
       value: "bs",
       label: "Bachelor of Science (BS)",
@@ -132,13 +105,8 @@ const PROGRAM_OPTIONS = {
       majors: [
         { value: "cs", label: "Computer Science", seats: 100 },
         { value: "se", label: "Software Engineering", seats: 80 },
-        { value: "ds", label: "Data Science", seats: 60 },
-        { value: "ai", label: "Artificial Intelligence", seats: 60 },
-        { value: "cyber", label: "Cyber Security", seats: 40 },
-        { value: "robotics", label: "Robotics & AI", seats: 40 },
       ],
     },
-    // ... other programs
   ],
   bachelors: [
     {
@@ -149,8 +117,6 @@ const PROGRAM_OPTIONS = {
       majors: [
         { value: "cs", label: "Computer Science", seats: 40 },
         { value: "se", label: "Software Engineering", seats: 40 },
-        { value: "ds", label: "Data Science", seats: 30 },
-        { value: "ai", label: "Artificial Intelligence", seats: 30 },
       ],
     },
     {
@@ -161,17 +127,13 @@ const PROGRAM_OPTIONS = {
       majors: [
         { value: "marketing", label: "Marketing", seats: 50 },
         { value: "finance", label: "Finance", seats: 50 },
-        { value: "hrm", label: "Human Resource Management", seats: 40 },
-        { value: "scm", label: "Supply Chain Management", seats: 30 },
       ],
     },
   ],
 };
 
 const AvailableSeats = ({ program, major, qualification }) => {
-  const programOption = PROGRAM_OPTIONS[qualification]?.find(
-    (p) => p.value === program
-  );
+  const programOption = PROGRAM_OPTIONS[qualification]?.find((p) => p.value === program);
   const seats =
     programOption?.majors?.find((m) => m.value === major)?.seats || 0;
   return (
@@ -182,9 +144,7 @@ const AvailableSeats = ({ program, major, qualification }) => {
 };
 
 const ProgramInfo = ({ program, qualification }) => {
-  const programInfo = PROGRAM_OPTIONS[qualification]?.find(
-    (p) => p.value === program
-  );
+  const programInfo = PROGRAM_OPTIONS[qualification]?.find((p) => p.value === program);
   if (!programInfo) return null;
 
   return (
@@ -208,8 +168,8 @@ const AdmissionInfoForm = ({ formData = {}, onChange, onValidation }) => {
     previousUniversity: "",
     nationality: "",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [selectedProgram, setSelectedProgram] = useState(null);
   const [availablePrograms, setAvailablePrograms] = useState([]);
   const [availableMajors, setAvailableMajors] = useState([]);
   const [availableCampuses, setAvailableCampuses] = useState(CAMPUSES);
@@ -219,9 +179,7 @@ const AdmissionInfoForm = ({ formData = {}, onChange, onValidation }) => {
       const programs = PROGRAM_OPTIONS[formData.qualification] || [];
       if (formData.campus) {
         const campus = CAMPUSES.find((c) => c.value === formData.campus);
-        const filteredPrograms = programs.filter((p) =>
-          campus.programs.includes(p.value)
-        );
+        const filteredPrograms = programs.filter((p) => campus.programs.includes(p.value));
         setAvailablePrograms(filteredPrograms);
       } else {
         setAvailablePrograms(programs);
@@ -234,16 +192,13 @@ const AdmissionInfoForm = ({ formData = {}, onChange, onValidation }) => {
       const program = PROGRAM_OPTIONS[formData.qualification]?.find(
         (p) => p.value === formData.program
       );
-      setSelectedProgram(program);
       setAvailableMajors(program?.majors || []);
     }
   }, [formData.program, formData.qualification]);
 
   useEffect(() => {
     if (formData.program) {
-      const filteredCampuses = CAMPUSES.filter((campus) =>
-        campus.programs.includes(formData.program)
-      );
+      const filteredCampuses = CAMPUSES.filter((campus) => campus.programs.includes(formData.program));
       setAvailableCampuses(filteredCampuses);
     } else {
       setAvailableCampuses(CAMPUSES);
@@ -262,36 +217,34 @@ const AdmissionInfoForm = ({ formData = {}, onChange, onValidation }) => {
       nationality: "",
     };
 
-    if (!data.qualification)
-      newErrors.qualification = "Current qualification is required";
-    if (!data.admissionType)
-      newErrors.admissionType = "Admission type is required";
+    if (!data.qualification) newErrors.qualification = "Current qualification is required";
+    if (!data.admissionType) newErrors.admissionType = "Admission type is required";
     if (!data.program) newErrors.program = "Program is required";
     if (!data.campus) newErrors.campus = "Campus is required";
     if (!data.shift) newErrors.shift = "Shift is required";
     if (!data.major) newErrors.major = "Major is required";
 
     if (data.admissionType === "transfer" && !data.previousUniversity) {
-      newErrors.previousUniversity =
-        "Previous university is required for transfer students";
+      newErrors.previousUniversity = "Previous university is required for transfer students";
     }
 
     if (data.admissionType === "international" && !data.nationality) {
-      newErrors.nationality =
-        "Nationality is required for international students";
+      newErrors.nationality = "Nationality is required for international students";
     }
 
     setErrors(newErrors);
-
     const hasErrors = Object.values(newErrors).some((error) => error !== "");
-    onValidation(!hasErrors);
+    if (typeof onValidation === "function") {
+      onValidation(!hasErrors);
+    }
 
-    return newErrors;
+    return !hasErrors;
   };
 
   const handleChange = (field, value) => {
     const newData = { ...formData, [field]: value };
 
+    // Reset dependent fields if qualification or program changes
     if (field === "qualification") {
       newData.program = "";
       newData.major = "";
@@ -315,6 +268,71 @@ const AdmissionInfoForm = ({ formData = {}, onChange, onValidation }) => {
     validateForm(newData);
   };
 
+  const submitForm = async (e) => {
+    e.preventDefault();
+
+    if (!validateForm(formData)) return;
+
+    setIsSubmitting(true);
+
+    const payload = {
+      student_id: formData.student_id, // Include student_id to link with the existing record
+      current_qualification: formData.qualification,
+      admission_type: formData.admissionType,
+      program: formData.program,
+      major: formData.major,
+      campus: formData.campus,
+      shift: formData.shift,
+    };
+
+    if (formData.admissionType === "transfer") {
+      payload.previous_university = formData.previousUniversity;
+      payload.previous_program = formData.previousProgram || "";
+      payload.completed_semesters = formData.completedSemesters || "";
+    }
+
+    if (formData.admissionType === "international") {
+      payload.nationality = formData.nationality;
+      payload.passportNumber = formData.passportNumber || "";
+    }
+
+    try {
+      const response = await fetch("http://localhost:3001/admissions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorDetails = {
+          status: response.status,
+          statusText: response.statusText,
+          url: response.url,
+        };
+        let responseBody;
+        try { responseBody = await response.json(); } catch {
+          try { responseBody = await response.text(); } catch { responseBody = "Unable to parse response body."; }
+        }
+        errorDetails.body = responseBody;
+
+        console.error("Error while submitting the form:", errorDetails);
+        throw new Error(`Failed to submit the form: ${JSON.stringify(errorDetails)}`);
+      }
+
+      console.log("Admission info saved successfully");
+      if (typeof onValidation === "function") {
+        onValidation(true);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      if (typeof onValidation === "function") {
+        onValidation(false);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const renderField = (field, label, options, disabled = false) => (
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -325,18 +343,12 @@ const AdmissionInfoForm = ({ formData = {}, onChange, onValidation }) => {
         onChange={(e) => handleChange(field, e.target.value)}
         disabled={disabled}
         className={`w-full p-3 rounded-lg border ${
-          errors[field]
-            ? "border-red-300 focus:ring-red-500"
-            : "border-gray-300 focus:ring-teal-500"
-        } focus:outline-none focus:ring-2 ${
-          disabled ? "bg-gray-100 cursor-not-allowed" : ""
-        }`}
+          errors[field] ? "border-red-300 focus:ring-red-500" : "border-gray-300 focus:ring-teal-500"
+        } focus:outline-none focus:ring-2 ${disabled ? "bg-gray-100 cursor-not-allowed" : ""}`}
       >
         <option value="">Select {label}</option>
         {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
+          <option key={option.value} value={option.value}>{option.label}</option>
         ))}
       </select>
       {errors[field] && (
@@ -377,7 +389,7 @@ const AdmissionInfoForm = ({ formData = {}, onChange, onValidation }) => {
           </li>
         </ul>
       </div>
-  
+
       {/* Main Form Section */}
       <div className="bg-white rounded-xl shadow-lg border border-gray-100">
         {/* Form Header */}
@@ -386,235 +398,242 @@ const AdmissionInfoForm = ({ formData = {}, onChange, onValidation }) => {
             <GraduationCap className="h-6 w-6 text-teal-500" />
             Admission Application Form
           </h2>
-          <p className="text-sm text-gray-600 mt-1">Please fill in all required fields marked with *</p>
+          <p className="text-sm text-gray-600 mt-1">
+            Please fill in all required fields marked with *
+          </p>
         </div>
-  
+
         {/* Form Content */}
-        <div className="p-6">
-          <div className="space-y-8">
-            {/* Basic Information Section */}
-            <div className="space-y-6">
+        <form onSubmit={submitForm} className="p-6 space-y-8">
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {renderField("qualification", "Current Qualification *", QUALIFICATION_OPTIONS)}
+              {renderField("admissionType", "Admission Type *", ADMISSION_TYPES)}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {renderField("program", "Program *", availablePrograms, !formData.qualification)}
+              {renderField("major", "Major *", availableMajors, !formData.program)}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {renderField("campus", "Campus *", availableCampuses)}
+              {renderField("shift", "Shift *", SHIFTS)}
+            </div>
+          </div>
+
+          {/* Transfer Student Section */}
+          {formData.admissionType === "transfer" && (
+            <div className="border-t border-gray-100 pt-6 space-y-6">
+              <h3 className="text-lg font-medium text-gray-800 mb-4 flex items-center gap-2">
+                <Building className="h-5 w-5 text-teal-500" />
+                Previous Institution Details
+              </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {renderField("qualification", "Current Qualification *", QUALIFICATION_OPTIONS)}
-                {renderField("admissionType", "Admission Type *", ADMISSION_TYPES)}
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {renderField("program", "Program *", availablePrograms, !formData.qualification)}
-                {renderField("major", "Major *", availableMajors, !formData.program)}
-              </div>
-  
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {renderField("campus", "Campus *", availableCampuses)}
-                {renderField("shift", "Shift *", SHIFTS)}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Previous University *
+                    <InfoTooltip content="Please provide the name of your previous institution" />
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.previousUniversity || ""}
+                    onChange={(e) => handleChange("previousUniversity", e.target.value)}
+                    className={`w-full p-3 rounded-lg border ${
+                      errors.previousUniversity
+                        ? "border-red-300 focus:ring-red-500"
+                        : "border-gray-300 focus:ring-teal-500"
+                    } focus:outline-none focus:ring-2`}
+                    placeholder="Enter previous university name"
+                  />
+                  {errors.previousUniversity && (
+                    <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
+                      <AlertCircle className="w-4 h-4" />
+                      {errors.previousUniversity}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Previous Program *
+                    <InfoTooltip content="Program you were enrolled in at your previous institution" />
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.previousProgram || ""}
+                    onChange={(e) => handleChange("previousProgram", e.target.value)}
+                    className="w-full p-3 rounded-lg border border-gray-300 focus:ring-teal-500 focus:outline-none focus:ring-2"
+                    placeholder="Enter previous program name"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Completed Semesters *
+                    <InfoTooltip content="Number of semesters completed at previous institution" />
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="8"
+                    value={formData.completedSemesters || ""}
+                    onChange={(e) => handleChange("completedSemesters", e.target.value)}
+                    className="w-full p-3 rounded-lg border border-gray-300 focus:ring-teal-500 focus:outline-none focus:ring-2"
+                    placeholder="Enter number of completed semesters"
+                  />
+                </div>
               </div>
             </div>
-  
-            {/* Transfer Student Section */}
-            {formData.admissionType === "transfer" && (
-              <div className="border-t border-gray-100 pt-6">
-                <h3 className="text-lg font-medium text-gray-800 mb-4 flex items-center gap-2">
-                  <Building className="h-5 w-5 text-teal-500" />
-                  Previous Institution Details
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Previous University *
-                      <InfoTooltip content="Please provide the name of your previous institution" />
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.previousUniversity || ""}
-                      onChange={(e) => handleChange("previousUniversity", e.target.value)}
-                      className={`w-full p-3 rounded-lg border ${
-                        errors.previousUniversity
-                          ? "border-red-300 focus:ring-red-500"
-                          : "border-gray-300 focus:ring-teal-500"
-                      } focus:outline-none focus:ring-2`}
-                      placeholder="Enter previous university name"
-                    />
-                    {errors.previousUniversity && (
-                      <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
-                        <AlertCircle className="w-4 h-4" />
-                        {errors.previousUniversity}
-                      </p>
-                    )}
-                  </div>
-  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Previous Program *
-                      <InfoTooltip content="Program you were enrolled in at your previous institution" />
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.previousProgram || ""}
-                      onChange={(e) => handleChange("previousProgram", e.target.value)}
-                      className="w-full p-3 rounded-lg border border-gray-300 focus:ring-teal-500 focus:outline-none focus:ring-2"
-                      placeholder="Enter previous program name"
-                    />
-                  </div>
-  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Completed Semesters *
-                      <InfoTooltip content="Number of semesters completed at previous institution" />
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="8"
-                      value={formData.completedSemesters || ""}
-                      onChange={(e) => handleChange("completedSemesters", e.target.value)}
-                      className="w-full p-3 rounded-lg border border-gray-300 focus:ring-teal-500 focus:outline-none focus:ring-2"
-                      placeholder="Enter number of completed semesters"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-  
-            {/* International Student Section */}
-            {formData.admissionType === "international" && (
-              <div className="border-t border-gray-100 pt-6">
-                <h3 className="text-lg font-medium text-gray-800 mb-4 flex items-center gap-2">
-                  <Globe className="h-5 w-5 text-teal-500" />
-                  International Student Details
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Nationality *
-                      <InfoTooltip content="Please provide your current nationality" />
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.nationality || ""}
-                      onChange={(e) => handleChange("nationality", e.target.value)}
-                      className={`w-full p-3 rounded-lg border ${
-                        errors.nationality
-                          ? "border-red-300 focus:ring-red-500"
-                          : "border-gray-300 focus:ring-teal-500"
-                      } focus:outline-none focus:ring-2`}
-                      placeholder="Enter your nationality"
-                    />
-                    {errors.nationality && (
-                      <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
-                        <AlertCircle className="w-4 h-4" />
-                        {errors.nationality}
-                      </p>
-                    )}
-                  </div>
-  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Passport Number *
-                      <InfoTooltip content="Enter your valid passport number" />
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.passportNumber || ""}
-                      onChange={(e) => handleChange("passportNumber", e.target.value)}
-                      className="w-full p-3 rounded-lg border border-gray-300 focus:ring-teal-500 focus:outline-none focus:ring-2"
-                      placeholder="Enter passport number"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-  
-            {/* Program Information Section */}
-            {formData.program && (
-              <div className="border-t border-gray-100 pt-6">
-                <h3 className="text-lg font-medium text-gray-800 mb-4 flex items-center gap-2">
-                  <BookOpen className="h-5 w-5 text-teal-500" />
-                  Program Details
-                </h3>
-                
-                <div className="space-y-4">
-                  <ProgramInfo
-                    program={formData.program}
-                    qualification={formData.qualification}
+          )}
+
+          {/* International Student Section */}
+          {formData.admissionType === "international" && (
+            <div className="border-t border-gray-100 pt-6 space-y-6">
+              <h3 className="text-lg font-medium text-gray-800 mb-4 flex items-center gap-2">
+                <Globe className="h-5 w-5 text-teal-500" />
+                International Student Details
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Nationality *
+                    <InfoTooltip content="Please provide your current nationality" />
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.nationality || ""}
+                    onChange={(e) => handleChange("nationality", e.target.value)}
+                    className={`w-full p-3 rounded-lg border ${
+                      errors.nationality
+                        ? "border-red-300 focus:ring-red-500"
+                        : "border-gray-300 focus:ring-teal-500"
+                    } focus:outline-none focus:ring-2`}
+                    placeholder="Enter your nationality"
                   />
-  
-                  <div className="bg-gray-50 rounded-xl p-4">
-                    <h4 className="text-sm font-medium text-gray-800 mb-3">Fee Structure</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                      <div className="bg-white p-3 rounded-lg border border-gray-200">
-                        <span className="block text-gray-600 mb-1">Admission Fee</span>
-                        <span className="font-semibold text-gray-800">
-                          PKR {formData.admissionType === "international" ? "100,000" : "50,000"}
-                        </span>
-                      </div>
-                      <div className="bg-white p-3 rounded-lg border border-gray-200">
-                        <span className="block text-gray-600 mb-1">Security Deposit</span>
-                        <span className="font-semibold text-gray-800">
-                          PKR {formData.admissionType === "international" ? "50,000" : "25,000"}
-                        </span>
-                      </div>
-                      <div className="bg-white p-3 rounded-lg border border-gray-200">
-                        <span className="block text-gray-600 mb-1">Per Semester</span>
-                        <span className="font-semibold text-gray-800">
-                          PKR {formData.admissionType === "international" ? "250,000" : "150,000"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+                  {errors.nationality && (
+                    <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
+                      <AlertCircle className="w-4 h-4" />
+                      {errors.nationality}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Passport Number *
+                    <InfoTooltip content="Enter your valid passport number" />
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.passportNumber || ""}
+                    onChange={(e) => handleChange("passportNumber", e.target.value)}
+                    className="w-full p-3 rounded-lg border border-gray-300 focus:ring-teal-500 focus:outline-none focus:ring-2"
+                    placeholder="Enter passport number"
+                  />
                 </div>
               </div>
-            )}
-  
-            {/* Available Seats */}
-            {formData.program && formData.major && (
-              <div className="bg-teal-50 rounded-xl p-4 border border-teal-100">
-                <AvailableSeats
+            </div>
+          )}
+
+          {/* Program Information Section */}
+          {formData.program && (
+            <div className="border-t border-gray-100 pt-6">
+              <h3 className="text-lg font-medium text-gray-800 mb-4 flex items-center gap-2">
+                <BookOpen className="h-5 w-5 text-teal-500" />
+                Program Details
+              </h3>
+
+              <div className="space-y-4">
+                <ProgramInfo
                   program={formData.program}
-                  major={formData.major}
                   qualification={formData.qualification}
                 />
-              </div>
-            )}
-  
-            {/* Campus Information */}
-            {formData.campus && (
-              <div className="border-t border-gray-100 pt-6">
-                <h3 className="text-lg font-medium text-gray-800 mb-4 flex items-center gap-2">
-                  <MapPin className="h-5 w-5 text-teal-500" />
-                  Campus Information
-                </h3>
-                
-                <div className="bg-gray-50 rounded-xl p-4 space-y-4">
-                  <div className="bg-white p-3 rounded-lg border border-gray-200">
-                    <span className="block text-sm font-medium text-gray-700 mb-1">Address</span>
-                    <span className="text-gray-600">
-                      {CAMPUSES.find((c) => c.value === formData.campus)?.address}
-                    </span>
-                  </div>
-  
-                  <div className="bg-white p-3 rounded-lg border border-gray-200">
-                    <span className="block text-sm font-medium text-gray-700 mb-2">Facilities</span>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                      {[
-                        "Library",
-                        "Computer Labs",
-                        "Sports Complex",
-                        "Cafeteria",
-                        "Prayer Area",
-                        "Medical Center"
-                      ].map((facility) => (
-                        <div key={facility} className="flex items-center gap-2 text-sm text-gray-600">
-                          <CheckCircle className="h-4 w-4 text-teal-500" />
-                          {facility}
-                        </div>
-                      ))}
+
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <h4 className="text-sm font-medium text-gray-800 mb-3">Fee Structure</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                    <div className="bg-white p-3 rounded-lg border border-gray-200">
+                      <span className="block text-gray-600 mb-1">Admission Fee</span>
+                      <span className="font-semibold text-gray-800">
+                        PKR {formData.admissionType === "international" ? "100,000" : "50,000"}
+                      </span>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg border border-gray-200">
+                      <span className="block text-gray-600 mb-1">Security Deposit</span>
+                      <span className="font-semibold text-gray-800">
+                        PKR {formData.admissionType === "international" ? "50,000" : "25,000"}
+                      </span>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg border border-gray-200">
+                      <span className="block text-gray-600 mb-1">Per Semester</span>
+                      <span className="font-semibold text-gray-800">
+                        PKR {formData.admissionType === "international" ? "250,000" : "150,000"}
+                      </span>
                     </div>
                   </div>
                 </div>
               </div>
-            )}
-          </div>
-        </div>
+            </div>
+          )}
+
+          {/* Available Seats */}
+          {formData.program && formData.major && (
+            <div className="bg-teal-50 rounded-xl p-4 border border-teal-100">
+              <AvailableSeats
+                program={formData.program}
+                major={formData.major}
+                qualification={formData.qualification}
+              />
+            </div>
+          )}
+
+          {/* Campus Information */}
+          {formData.campus && (
+            <div className="border-t border-gray-100 pt-6">
+              <h3 className="text-lg font-medium text-gray-800 mb-4 flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-teal-500" />
+                Campus Information
+              </h3>
+
+              <div className="bg-gray-50 rounded-xl p-4 space-y-4">
+                <div className="bg-white p-3 rounded-lg border border-gray-200">
+                  <span className="block text-sm font-medium text-gray-700 mb-1">Address</span>
+                  <span className="text-gray-600">
+                    {CAMPUSES.find((c) => c.value === formData.campus)?.address}
+                  </span>
+                </div>
+
+                <div className="bg-white p-3 rounded-lg border border-gray-200">
+                  <span className="block text-sm font-medium text-gray-700 mb-2">Facilities</span>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {[
+                      "Library",
+                      "Computer Labs",
+                      "Sports Complex",
+                      "Cafeteria",
+                      "Prayer Area",
+                      "Medical Center",
+                    ].map((facility) => (
+                      <div key={facility} className="flex items-center gap-2 text-sm text-gray-600">
+                        <CheckCircle className="h-4 w-4 text-teal-500" />
+                        {facility}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            className="w-full mt-6 p-3 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-all duration-300"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Submitting..." : "Save Information"}
+          </button>
+        </form>
       </div>
     </div>
   );
