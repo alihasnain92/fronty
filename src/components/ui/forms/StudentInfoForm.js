@@ -3,7 +3,9 @@ import { Upload, X, Camera, AlertCircle, CheckCircle2 } from "lucide-react";
 
 const StudentInfoForm = ({ formData = {}, onChange, onValidation }) => {
   const [errors, setErrors] = useState({});
-  const [previewUrl, setPreviewUrl] = useState(formData.profileImagePreview || "");
+  const [previewUrl, setPreviewUrl] = useState(
+    formData.profileImagePreview || ""
+  );
   const [isDragOver, setIsDragOver] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -149,6 +151,16 @@ const StudentInfoForm = ({ formData = {}, onChange, onValidation }) => {
 
     setIsSubmitting(true);
 
+    // const fetchStudentId = async (id) => {
+    //   const response = await fetch(`http://localhost:3001/${id}`);
+    //   if (!response.ok) {
+    //     console.log(`${id} not present`);
+    //     return `id not found`;
+    //   }
+    //   return response;
+    // };
+
+    console.log("formData.student_id:", formData.student_id);
     const method = formData.student_id ? "PATCH" : "POST";
     const url = formData.student_id
       ? `http://localhost:3001/students/${formData.student_id}`
@@ -163,11 +175,23 @@ const StudentInfoForm = ({ formData = {}, onChange, onValidation }) => {
       form.append("profileImage", formData.profileImage);
     }
 
+    const payload = {
+      first_name: formData.first_name,
+      last_name: formData.last_name,
+      email: formData.email,
+      phone_number: formData.phone_number,
+    };
     try {
       const response = await fetch(url, {
         method: method,
-        body: form,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
       });
+      console.log(typeof form);
+      console.log(`body: ${form.get("email")}`);
+      console.log(`response on FE`, response);
 
       if (!response.ok) {
         const errorDetails = {
@@ -186,7 +210,7 @@ const StudentInfoForm = ({ formData = {}, onChange, onValidation }) => {
           }
         }
         errorDetails.body = responseBody;
-
+        console.log(formData);
         console.error("Error while submitting the form:", errorDetails);
         throw new Error(
           `Failed to submit the form: ${JSON.stringify(errorDetails)}`
@@ -195,6 +219,7 @@ const StudentInfoForm = ({ formData = {}, onChange, onValidation }) => {
 
       const result = await response.json();
       console.log("Form submitted successfully", result);
+      console.log(`Student_id===>`, result.student_id);
 
       // If POST was used and we got a student_id in response, store it for future PATCH requests
       if (!formData.student_id && result.student_id) {
@@ -442,6 +467,5 @@ const StudentInfoForm = ({ formData = {}, onChange, onValidation }) => {
 };
 
 export default StudentInfoForm;
-
 
 // Second Integration
