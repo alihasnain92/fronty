@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Upload, X, Camera, AlertCircle, CheckCircle2 } from "lucide-react";
+import { jsx } from "react/jsx-runtime";
 
 const StudentInfoForm = ({ formData = {}, onChange, onValidation }) => {
   const [errors, setErrors] = useState({});
@@ -175,22 +176,22 @@ const StudentInfoForm = ({ formData = {}, onChange, onValidation }) => {
       form.append("profileImage", formData.profileImage);
     }
 
-    const payload = {
-      first_name: formData.first_name,
-      last_name: formData.last_name,
-      email: formData.email,
-      phone_number: formData.phone_number,
-    };
+    // const payload = {
+    //   first_name: formData.first_name,
+    //   last_name: formData.last_name,
+    //   email: formData.email,
+    //   phone_number: formData.phone_number,
+    //   profileImage: formData.profileImage, // Handle existing images
+    // };
     try {
       const response = await fetch(url, {
         method: method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
+        body: form, // Send FormData directly
       });
       console.log(typeof form);
-      console.log(`body: ${form.get("email")}`);
+      console.log(`url----> `, url);
+      console.log(`method----> `, method);
+      console.log(`body: ${JSON.stringify(form)}`);
       console.log(`response on FE`, response);
 
       if (!response.ok) {
